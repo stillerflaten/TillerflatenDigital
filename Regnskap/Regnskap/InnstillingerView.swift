@@ -57,27 +57,57 @@ struct InnstillingerView: View {
     }
 }
 
-/// Tekstfelt for kronebeløp med tallastatur.
+/// Tekstfelt for beløp med tallastatur. Feltet er tomt når beløpet er 0,
+/// så du kan skrive rett inn uten å måtte slette en null først.
 struct BelopFelt: View {
     let tittel: String
     @Binding var belop: Double
+    let enhet: String
 
-    init(_ tittel: String, belop: Binding<Double>) {
+    @State private var tekst = ""
+    @FocusState private var iFokus: Bool
+
+    init(_ tittel: String, belop: Binding<Double>, enhet: String = "kr") {
         self.tittel = tittel
         self._belop = belop
+        self.enhet = enhet
     }
 
     var body: some View {
         HStack {
             Text(tittel)
             Spacer()
-            TextField("0", value: $belop, format: .number.precision(.fractionLength(0...2)))
+            TextField("0", text: $tekst)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .monospacedDigit()
                 .frame(maxWidth: 160)
-            Text("kr")
+                .focused($iFokus)
+            Text(enhet)
                 .foregroundStyle(.secondary)
         }
+        .contentShape(Rectangle())
+        .onTapGesture { iFokus = true }
+        .onAppear { tekst = Self.vis(belop) }
+        .onChange(of: tekst) { _, ny in
+            belop = Self.tolk(ny)
+        }
+        .onChange(of: belop) { _, ny in
+            // Beløpet kan endres utenfra. Ikke forstyrr mens du skriver.
+            if !iFokus && Self.tolk(tekst) != ny { tekst = Self.vis(ny) }
+        }
+        .onChange(of: iFokus) { _, fokus in
+            if !fokus { tekst = Self.vis(belop) }
+        }
+    }
+
+    private static func vis(_ verdi: Double) -> String {
+        verdi == 0 ? "" : verdi.formatted(.number.precision(.fractionLength(0...2)))
+    }
+
+    /// Godtar både komma og punktum, og hopper over mellomrom (tusenskille).
+    private static func tolk(_ tekst: String) -> Double {
+        let renset = tekst.filter { !$0.isWhitespace }.replacingOccurrences(of: ",", with: ".")
+        return Double(renset) ?? 0
     }
 }
