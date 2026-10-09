@@ -2,7 +2,7 @@
 
 En iPhone-app (SwiftUI + SwiftData) som hjelper med regnskapet i enkeltpersonforetaket ved siden av fast jobb.
 
-All data lagres bare lokalt på telefonen. Ingenting sendes noe sted.
+All data lagres på telefonen og synkroniseres til din private iCloud (CloudKit). I tillegg kan du lage en sikkerhetskopi-fil med alt innhold under Innstillinger (tannhjulet) og gjenopprette fra den.
 
 ## Hva appen gjør
 
@@ -36,5 +36,14 @@ Tallene er estimater og erstatter ikke Skatteetaten eller en regnskapsfører.
 6. Gå inn i mappen `Regnskap` og dobbeltklikk på `Regnskap.xcodeproj`. Xcode åpner seg.
 7. Klikk på det blå **Regnskap**-ikonet øverst i venstre kolonne, velg target **Regnskap**, fanen **Signing & Capabilities**, og sjekk at **Team** er ditt (samme som i HockeySub).
 8. Velg iPhone-en din (eller en simulator) øverst i Xcode, og trykk **▶︎** (eller ⌘R).
+
+### Skru på iCloud (én gang)
+
+1. I Xcode: klikk det blå **Regnskap**-ikonet → target **Regnskap** → **Signing & Capabilities**.
+2. Du skal se **iCloud** med **CloudKit** krysset av. Under **Containers**, sjekk at `iCloud.Silje.Regnskap` er krysset av. Er den rød eller mangler, trykk **+** og skriv `iCloud.Silje.Regnskap`, og trykk deretter på det lille oppdateringsikonet.
+3. Du skal også se **Push Notifications** og **Background Modes** med **Remote notifications** krysset av.
+4. Kjør appen. Under tannhjulet → Sikkerhetskopi skal det stå «iCloud-synk: På».
+
+Før appen sendes til TestFlight eller App Store, må databasestrukturen publiseres: gå til [CloudKit Console](https://icloud.developer.apple.com), velg containeren og trykk **Deploy Schema Changes…** til Production.
 
 Testene kjører du med **⌘U**. De sjekker at skatte-, avskrivnings- og fristberegningene gir riktige tall.

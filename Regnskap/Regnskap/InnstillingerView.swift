@@ -12,6 +12,8 @@ struct InnstillingerView: View {
     var body: some View {
         NavigationStack {
             Form {
+                SikkerhetskopiSeksjon()
+
                 Section {
                     BelopFelt("Brutto årslønn", belop: $lonn)
                 } header: {

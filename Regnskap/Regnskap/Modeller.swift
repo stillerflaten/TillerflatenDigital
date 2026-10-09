@@ -67,6 +67,10 @@ final class Bilag {
     var forfallsdato: Date? = nil
     var erBetalt: Bool = true
 
+    /// Bildet fra første versjon av appen (ett bilde per bilag). Flyttes til `vedlegg`
+    /// når appen starter, se `Lagring.flyttGamleBilder`. Ikke bruk dette feltet ellers.
+    @Attribute(.externalStorage) var bilde: Data? = nil
+
     /// Bilder av kvitteringen (flere sider, vedlegg, betalingsbekreftelse osv.).
     @Relationship(deleteRule: .cascade, inverse: \Vedlegg.bilag) var vedlegg: [Vedlegg]? = []
 

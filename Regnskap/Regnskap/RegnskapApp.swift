@@ -3,12 +3,15 @@ import SwiftData
 
 @main
 struct RegnskapApp: App {
+    let container = Lagring.lagContainer()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(\.locale, Locale(identifier: "nb_NO"))
+                .task { Lagring.flyttGamleBilder(container.mainContext) }
         }
-        .modelContainer(for: [Bilag.self, Vedlegg.self, Inntekt.self, Driftsmiddel.self, Kjoretur.self])
+        .modelContainer(container)
     }
 }
 
