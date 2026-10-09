@@ -274,7 +274,13 @@ a { color: var(--accent); }
 .app .btn-primary { background: var(--accent); color: var(--on-accent); }
 .app .btn-primary:hover { background: var(--accent-hover); }
 
-.shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.shots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 480px;
+  justify-self: end;
+}
 .shots img {
   width: 100%;
   height: auto;
@@ -284,6 +290,7 @@ a { color: var(--accent); }
 
 @media (max-width: 860px) {
   .app { grid-template-columns: 1fr; gap: 28px; }
+  .shots { justify-self: start; }
 }
 
 @media (max-width: 640px) {
@@ -294,5 +301,5 @@ a { color: var(--accent); }
   .section { padding: 56px 0; }
   .about { grid-template-columns: 1fr; gap: 0; }
   .shots { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 12px; margin-right: -20px; padding-right: 20px; }
-  .shots img { flex: 0 0 62%; width: 62%; min-width: 0; scroll-snap-align: start; }
+  .shots img { flex: 0 0 44%; width: 44%; min-width: 0; scroll-snap-align: start; }
 }
