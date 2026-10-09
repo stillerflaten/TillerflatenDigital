@@ -129,6 +129,11 @@ struct OversiktView: View {
                 }
 
                 Section {
+                    NavigationLink {
+                        ArkivView()
+                    } label: {
+                        Label("Arkiv med alle år", systemImage: "archivebox")
+                    }
                     ShareLink(item: Eksport.csvFil(aar: aar, bilag: bilag, inntekter: inntekter, mvaRegistrert: mvaRegistrert),
                               preview: SharePreview("Regnskap \(String(aar)).csv")) {
                         Label("Eksporter \(String(aar)) som regneark (CSV)", systemImage: "square.and.arrow.up")

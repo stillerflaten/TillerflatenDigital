@@ -9,9 +9,13 @@ struct BilagListeView: View {
     @State private var visNytt = false
     @State private var bareUbetalte = false
 
+    private func erUbetalt(_ b: Bilag) -> Bool { b.erRegning && !b.erBetalt }
+
+    /// Eldre år ligger i Arkiv. Ubetalte regninger vises alltid, og søk leter i alle år.
     private var filtrert: [Bilag] {
         bilag.filter { b in
-            (!bareUbetalte || (b.erRegning && !b.erBetalt))
+            (!sok.isEmpty || Arkiv.erAktivt(b.dato.aar) || erUbetalt(b))
+            && (!bareUbetalte || erUbetalt(b))
             && (sok.isEmpty
                 || b.tittel.localizedCaseInsensitiveContains(sok)
                 || b.notat.localizedCaseInsensitiveContains(sok)
@@ -19,13 +23,8 @@ struct BilagListeView: View {
         }
     }
 
-    /// Bilagene gruppert per måned, nyeste først.
-    private var maaneder: [(tittel: String, bilag: [Bilag])] {
-        let cal = Frister.kalender
-        let grupper = Dictionary(grouping: filtrert) { cal.dateInterval(of: .month, for: $0.dato)?.start ?? $0.dato }
-        return grupper.keys.sorted(by: >).map { start in
-            (tittel: start.formatted(.dateTime.month(.wide).year()).capitalized, bilag: grupper[start] ?? [])
-        }
+    private var iArkivet: Int {
+        bilag.filter { !Arkiv.erAktivt($0.dato.aar) && !erUbetalt($0) }.count
     }
 
     var body: some View {
@@ -41,30 +40,9 @@ struct BilagListeView: View {
                             .buttonStyle(.borderedProminent)
                     }
                 }
-                ForEach(maaneder, id: \.tittel) { maaned in
-                    Section {
-                        ForEach(maaned.bilag) { b in
-                            NavigationLink {
-                                BilagSkjemaView(bilag: b)
-                            } label: {
-                                BilagRad(bilag: b)
-                            }
-                        }
-                        .onDelete { indekser in
-                            for i in indekser {
-                                let b = maaned.bilag[i]
-                                Varsler.fjernRegning(b)
-                                Kalender.fjern(regning: b)
-                                context.delete(b)
-                            }
-                        }
-                    } header: {
-                        HStack {
-                            Text(maaned.tittel)
-                            Spacer()
-                            Text(maaned.bilag.reduce(0) { $0 + $1.belop }.kr)
-                        }
-                    }
+                BilagMaanedSeksjoner(bilag: filtrert)
+                if sok.isEmpty && iArkivet > 0 {
+                    ArkivLenke(antall: iArkivet, hva: "bilag")
                 }
             }
             .temaBakgrunn()
