@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tillerflaten Digital – apper og nettsider</title>
+  <meta name="description" content="Tillerflaten Digital utvikler apper for iPhone og iPad, og hjelper bedrifter med nettsider.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="#">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 26 L12 10 L17 18 L21 12 L29 26 Z" /></svg>
+        Tillerflaten Digital
+      </a>
+      <nav class="nav" aria-label="Hovedmeny">
+        <a href="#tjenester">Tjenester</a>
+        <a href="#om">Om</a>
+        <a href="#kontakt" class="nav-cta">Kontakt</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <p class="eyebrow">Apper og nettsider fra Norge</p>
+        <h1>Digitale verktøy som er enkle å bruke og trygge å stole på.</h1>
+        <p class="lead">
+          Jeg utvikler apper for iPhone og iPad, og hjelper bedrifter med å få en
+          nettside som gjør jobben, uten unødvendig kompleksitet.
+        </p>
+        <div class="actions">
+          <a class="btn btn-primary" href="#kontakt">Ta kontakt</a>
+          <a class="btn btn-ghost" href="#tjenester">Se hva jeg tilbyr</a>
+        </div>
+      </div>
+      <svg class="ridge" viewBox="0 0 1440 160" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 160 L0 110 L180 50 L320 95 L470 20 L640 100 L780 60 L930 115 L1100 35 L1260 90 L1440 55 L1440 160 Z" />
+      </svg>
+    </section>
+
+    <section id="tjenester" class="section">
+      <div class="wrap">
+        <h2>Tjenester</h2>
+        <div class="cards">
+          <article class="card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><line x1="10" y1="18" x2="14" y2="18"/></svg>
+            </div>
+            <h3>Apper</h3>
+            <p>Egne apper for iPhone og iPad, bygget med Swift og SwiftUI. Fokus på ryddig design, personvern og at ting bare fungerer.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="9" x2="22" y2="9"/><circle cx="5.5" cy="6.5" r=".6"/><circle cx="8" cy="6.5" r=".6"/></svg>
+            </div>
+            <h3>Nettsider <span class="tag">Kommer</span></h3>
+            <p>Raske, mobilvennlige nettsider for små bedrifter. Enkle å oppdatere, og laget for at kundene dine finner det de leter etter.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            </div>
+            <h3>Rådgivning</h3>
+            <p>Usikker på om du trenger en app, en nettside eller ingen av delene? Jeg hjelper deg å finne ut hva som faktisk løser behovet.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="om" class="section section-alt">
+      <div class="wrap about">
+        <h2>Om</h2>
+        <div>
+          <p>
+            Tillerflaten Digital er et lite, norsk enkeltpersonforetak. Du snakker
+            alltid direkte med den som lager løsningen, fra første idé til ferdig produkt.
+          </p>
+          <p>
+            Jeg tror på programvare som respekterer brukeren: tydelige valg,
+            ingen unødvendig datainnsamling, og design som føles naturlig.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="kontakt" class="section">
+      <div class="wrap contact">
+        <h2>Har du en idé?</h2>
+        <p class="lead">Send en e-post, så tar vi en uforpliktende prat.</p>
+        <!-- TODO: bytt til riktig adresse når domenet er på plass -->
+        <a class="btn btn-primary btn-lg" href="mailto:post@tillerflaten.no">post@tillerflaten.no</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <span>© <span id="year">2026</span> Tillerflaten Digital</span>
+      <!-- TODO: legg inn org.nr. når foretaket er registrert -->
+      <span>Org.nr. kommer</span>
+    </div>
+  </footer>
+
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
