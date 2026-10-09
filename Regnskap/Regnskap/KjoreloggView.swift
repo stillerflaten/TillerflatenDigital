@@ -43,6 +43,7 @@ struct KjoreloggView: View {
                 }
             }
         }
+        .temaBakgrunn()
         .navigationTitle("Kjørelogg")
         .toolbar {
             Button {
@@ -87,6 +88,7 @@ struct KjoreturSkjemaView: View {
             }
         }
         .tastaturFerdigKnapp()
+        .temaBakgrunn()
         .navigationTitle(erNy ? "Ny tur" : "Tur")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

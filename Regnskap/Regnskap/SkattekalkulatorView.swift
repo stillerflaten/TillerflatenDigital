@@ -55,6 +55,7 @@ struct KalkulatorerView: View {
                     }
                 }
             }
+            .temaBakgrunn()
             .navigationTitle("Kalkulatorer")
         }
     }
@@ -133,6 +134,7 @@ struct SkattekalkulatorView: View {
             }
         }
         .tastaturFerdigKnapp()
+        .temaBakgrunn()
         .navigationTitle("Skatt")
         .onAppear {
             if !hentet { hentTall() }

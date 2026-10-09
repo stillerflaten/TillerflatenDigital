@@ -67,6 +67,7 @@ struct BilagListeView: View {
                     }
                 }
             }
+            .temaBakgrunn()
             .navigationTitle("Bilag")
             .searchable(text: $sok, prompt: "Søk i bilag")
             .toolbar {
@@ -118,7 +119,8 @@ struct BilagRad: View {
             } else {
                 Image(systemName: bilag.kategori.ikon)
                     .frame(width: 40, height: 40)
-                    .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 6))
+                    .foregroundStyle(Color.accentColor)
+                    .background(Color.temaAksentMyk, in: RoundedRectangle(cornerRadius: 6))
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(bilag.tittel.isEmpty ? bilag.kategori.navn : bilag.tittel)
@@ -257,6 +259,7 @@ struct BilagSkjemaView: View {
         } message: {
             Text(kalenderMelding ?? "")
         }
+        .temaBakgrunn()
         .navigationTitle(erNytt ? "Nytt bilag" : "Bilag")
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: bilag.erBetalt) { _, betalt in

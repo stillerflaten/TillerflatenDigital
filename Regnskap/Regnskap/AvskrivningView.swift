@@ -83,6 +83,7 @@ struct AvskrivningView: View {
             }
         }
         .tastaturFerdigKnapp()
+        .temaBakgrunn()
         .navigationTitle("Avskrivning")
         .sheet(isPresented: $visNytt) {
             NavigationStack {
@@ -190,6 +191,7 @@ struct DriftsmiddelSkjemaView: View {
             }
         }
         .tastaturFerdigKnapp()
+        .temaBakgrunn()
         .navigationTitle(erNytt ? "Nytt utstyr" : "Utstyr")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

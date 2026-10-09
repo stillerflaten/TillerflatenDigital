@@ -5,6 +5,10 @@ import SwiftData
 struct RegnskapApp: App {
     let container = Lagring.lagContainer()
 
+    init() {
+        Tema.konfigurer()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()

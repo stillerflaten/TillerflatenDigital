@@ -45,6 +45,7 @@ struct InnstillingerView: View {
                     Text("Gir et standardfradrag på \(Skattesatser.aar2026.hjemmekontorSjablong.kr) i året. Rommet må bare brukes til jobb i foretaket. Har du høyere dokumenterte kostnader, kan du heller trekke fra dem.")
                 }
             }
+            .temaBakgrunn()
             .navigationTitle("Innstillinger")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

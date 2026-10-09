@@ -65,6 +65,7 @@ struct FristerView: View {
                     Text("Datoene er hentet fra Skatteetaten høsten 2026. Skatteetaten kan endre frister, så dobbeltsjekk der.")
                 }
             }
+            .temaBakgrunn()
             .navigationTitle("Frister")
             .onChange(of: varsler) { _, paa in
                 if paa {

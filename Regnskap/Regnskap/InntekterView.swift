@@ -57,6 +57,7 @@ struct InntekterView: View {
                     }
                 }
             }
+            .temaBakgrunn()
             .navigationTitle("Inntekter")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -121,6 +122,7 @@ struct InntektSkjemaView: View {
             }
         }
         .tastaturFerdigKnapp()
+        .temaBakgrunn()
         .navigationTitle(erNy ? "Ny inntekt" : "Inntekt")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
