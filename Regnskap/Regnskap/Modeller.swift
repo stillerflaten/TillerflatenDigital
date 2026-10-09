@@ -67,7 +67,13 @@ final class Bilag {
     var forfallsdato: Date? = nil
     var erBetalt: Bool = true
 
-    @Attribute(.externalStorage) var bilde: Data? = nil
+    /// Bilder av kvitteringen (flere sider, vedlegg, betalingsbekreftelse osv.).
+    @Relationship(deleteRule: .cascade, inverse: \Vedlegg.bilag) var vedlegg: [Vedlegg]? = []
+
+    /// Bildene i den rekkefølgen de ble lagt til.
+    var sorterteVedlegg: [Vedlegg] {
+        (vedlegg ?? []).sorted { ($0.opprettet, $0.nr) < ($1.opprettet, $1.nr) }
+    }
 
     var kategori: Utgiftskategori {
         get { Utgiftskategori(rawValue: kategoriRaw) ?? .annet }
@@ -86,6 +92,22 @@ final class Bilag {
         self.tittel = tittel
         self.belop = belop
         self.kategoriRaw = kategori.rawValue
+    }
+}
+
+/// Ett bilde knyttet til et bilag.
+@Model
+final class Vedlegg {
+    var uuid: UUID = UUID()
+    var opprettet: Date = Date.now
+    /// Rekkefølge når flere bilder legges til samtidig (f.eks. sider fra skanneren).
+    var nr: Int = 0
+    @Attribute(.externalStorage) var data: Data? = nil
+    var bilag: Bilag?
+
+    init(data: Data, nr: Int = 0) {
+        self.data = data
+        self.nr = nr
     }
 }
 

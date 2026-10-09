@@ -8,7 +8,7 @@ struct RegnskapApp: App {
             ContentView()
                 .environment(\.locale, Locale(identifier: "nb_NO"))
         }
-        .modelContainer(for: [Bilag.self, Inntekt.self, Driftsmiddel.self, Kjoretur.self])
+        .modelContainer(for: [Bilag.self, Vedlegg.self, Inntekt.self, Driftsmiddel.self, Kjoretur.self])
     }
 }
 

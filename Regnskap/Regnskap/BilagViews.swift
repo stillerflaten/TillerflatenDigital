@@ -97,12 +97,23 @@ struct BilagRad: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            if let data = bilag.bilde, let bilde = UIImage(data: data) {
+            if let data = bilag.sorterteVedlegg.first?.data, let bilde = UIImage(data: data) {
                 Image(uiImage: bilde)
                     .resizable()
                     .scaledToFill()
                     .frame(width: 40, height: 40)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .overlay(alignment: .bottomTrailing) {
+                        let antall = bilag.vedlegg?.count ?? 0
+                        if antall > 1 {
+                            Text("\(antall)")
+                                .font(.caption2.bold())
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 4)
+                                .background(Color.black.opacity(0.6), in: Capsule())
+                                .padding(2)
+                        }
+                    }
             } else {
                 Image(systemName: bilag.kategori.ikon)
                     .frame(width: 40, height: 40)
@@ -116,7 +127,7 @@ struct BilagRad: View {
                     if bilag.erRegning && !bilag.erBetalt {
                         Text("· Ubetalt").foregroundStyle(.orange)
                     }
-                    if bilag.bilde == nil {
+                    if (bilag.vedlegg ?? []).isEmpty {
                         Text("· Mangler bilde").foregroundStyle(.red)
                     }
                 }
@@ -148,7 +159,7 @@ struct BilagSkjemaView: View {
     var body: some View {
         Form {
             Section("Kvittering") {
-                BildeVelger(bildeData: $bilag.bilde)
+                VedleggVelger(bilag: bilag)
             }
 
             Section {
@@ -238,6 +249,7 @@ struct BilagSkjemaView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Lagre") {
                         context.insert(bilag)
+                        for v in bilag.vedlegg ?? [] { context.insert(v) }
                         Varsler.planleggRegning(bilag)
                         dismiss()
                     }

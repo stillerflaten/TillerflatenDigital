@@ -9,7 +9,7 @@ All data lagres bare lokalt på telefonen. Ingenting sendes noe sted.
 | Fane | Innhold |
 |---|---|
 | **Oversikt** | Årets inntekter, fradrag og overskudd, og hvor mye du bør sette av til skatt. Viser også hvor nær du er mva-grensen, ubetalte regninger og neste frist. Eksport til regneark (CSV). |
-| **Bilag** | Kvitteringer og regninger med bilde (skann med kameraet eller velg fra bilder), kategori, mva og hvor stor del som brukes i foretaket. Regninger får varsel dagen før forfall. |
+| **Bilag** | Kvitteringer og regninger med ett eller flere bilder (skann flere sider med kameraet eller velg flere bilder), kategori, mva og hvor stor del som brukes i foretaket. Regninger får varsel dagen før forfall. |
 | **Inntekter** | Utbetalinger fra App Store (og andre inntekter), med anslag på hvor mye av hver utbetaling du bør sette av. |
 | **Kalkulatorer** | Skatt på overskuddet oppå lønn, avskrivning av utstyr (direkte fradrag eller saldogruppe a/d), kjørelogg, forklaring av mva for App Store-utviklere og en sjekkliste for nytt ENK. |
 | **Frister** | Forskuddsskatt, skattemelding og (hvis mva-registrert) mva-terminer, med varsler. |

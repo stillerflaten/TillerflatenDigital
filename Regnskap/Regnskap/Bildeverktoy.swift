@@ -39,7 +39,7 @@ struct BildeVelger: View {
             }
             .buttonStyle(.plain)
             .fullScreenCover(isPresented: $visStortBilde) {
-                StortBildeView(bilde: bilde)
+                StortBildeView(bilder: [bilde])
             }
             Button("Fjern bilde", role: .destructive) {
                 self.bildeData = nil
@@ -53,8 +53,10 @@ struct BildeVelger: View {
                 Label("Skann kvittering", systemImage: "doc.viewfinder")
             }
             .fullScreenCover(isPresented: $visSkanner) {
-                DokumentSkanner { bilde in
-                    bildeData = Bildeverktoy.komprimer(bilde)
+                DokumentSkanner { sider in
+                    if let forste = sider.first {
+                        bildeData = Bildeverktoy.komprimer(forste)
+                    }
                 }
                 .ignoresSafeArea()
             }
@@ -77,17 +79,27 @@ struct BildeVelger: View {
 }
 
 struct StortBildeView: View {
-    let bilde: UIImage
+    let bilder: [UIImage]
+    @State var valgt = 0
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
-            ScrollView([.horizontal, .vertical]) {
-                Image(uiImage: bilde)
-                    .resizable()
-                    .scaledToFit()
-                    .containerRelativeFrame(.horizontal)
+            TabView(selection: $valgt) {
+                ForEach(bilder.indices, id: \.self) { i in
+                    ScrollView([.horizontal, .vertical]) {
+                        Image(uiImage: bilder[i])
+                            .resizable()
+                            .scaledToFit()
+                            .containerRelativeFrame(.horizontal)
+                    }
+                    .tag(i)
+                }
             }
+            .tabViewStyle(.page(indexDisplayMode: bilder.count > 1 ? .always : .never))
+            .indexViewStyle(.page(backgroundDisplayMode: .always))
+            .navigationTitle(bilder.count > 1 ? "Bilde \(valgt + 1) av \(bilder.count)" : "")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Lukk") { dismiss() }
@@ -99,7 +111,8 @@ struct StortBildeView: View {
 
 /// Apples innebygde dokumentskanner (samme som i Notater-appen).
 struct DokumentSkanner: UIViewControllerRepresentable {
-    let ferdig: (UIImage) -> Void
+    /// Får alle sidene som ble skannet.
+    let ferdig: ([UIImage]) -> Void
     @Environment(\.dismiss) private var dismiss
 
     func makeUIViewController(context: Context) -> VNDocumentCameraViewController {
@@ -118,9 +131,7 @@ struct DokumentSkanner: UIViewControllerRepresentable {
 
         func documentCameraViewController(_ controller: VNDocumentCameraViewController,
                                           didFinishWith scan: VNDocumentCameraScan) {
-            if scan.pageCount > 0 {
-                forelder.ferdig(scan.imageOfPage(at: 0))
-            }
+            forelder.ferdig((0..<scan.pageCount).map { scan.imageOfPage(at: $0) })
             forelder.dismiss()
         }
 
