@@ -37,6 +37,10 @@ python3 -m http.server 8420 --directory site
 
 Før publisering: bytt e-postadresse og legg inn org.nr. (se `TODO` i `site/index.html`).
 
+## Regnskapsapp
+
+Ligger i `Regnskap/`. iPhone-app for kvitteringer, inntekter, skatteberegning, avskrivning og frister. Se [Regnskap/README.md](Regnskap/README.md).
+
 ## Andre navneforslag som ble vurdert
 
 Pixelfjord, Lysning, Kodeklar, Nordbyte, Spire Digital, Fjellkode, Tindestudio, Lille Lab, Tillerflaten Studio.
