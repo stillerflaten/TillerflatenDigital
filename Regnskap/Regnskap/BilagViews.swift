@@ -54,6 +54,7 @@ struct BilagListeView: View {
                             for i in indekser {
                                 let b = maaned.bilag[i]
                                 Varsler.fjernRegning(b)
+                                Kalender.fjern(regning: b)
                                 context.delete(b)
                             }
                         }
@@ -149,7 +150,21 @@ struct BilagSkjemaView: View {
     // @State holder på det samme objektet selv om skjermen tegnes på nytt,
     // så et nytt bilag ikke mistes mens du fyller det ut.
     @State private var bilag: Bilag
+    @State private var kalenderMelding: String?
     private let erNytt: Bool
+
+    private func leggForfallIKalender() async {
+        guard await Kalender.beOmTilgang() else {
+            kalenderMelding = Kalender.Feil.ingenTilgang.errorDescription
+            return
+        }
+        do {
+            try Kalender.leggInn(regning: bilag)
+            kalenderMelding = "Forfallet er lagt i kalenderen «\(Kalender.navn)», med varsel dagen før."
+        } catch {
+            kalenderMelding = "Kunne ikke legge inn i kalenderen: \(error.localizedDescription)"
+        }
+    }
 
     init(bilag: Bilag?) {
         _bilag = State(initialValue: bilag ?? Bilag())
@@ -207,10 +222,17 @@ struct BilagSkjemaView: View {
                         set: { bilag.forfallsdato = $0 }
                     ), displayedComponents: .date)
                     Toggle("Betalt", isOn: $bilag.erBetalt)
+                    if !bilag.erBetalt && bilag.forfallsdato != nil {
+                        Button {
+                            Task { await leggForfallIKalender() }
+                        } label: {
+                            Label("Legg forfallet i kalenderen", systemImage: "calendar.badge.plus")
+                        }
+                    }
                 }
             } footer: {
                 if bilag.erRegning && !bilag.erBetalt {
-                    Text("Du får et varsel dagen før forfall.")
+                    Text("Du får et varsel dagen før forfall. Legger du det i kalenderen, fjernes det derfra når du markerer regningen som betalt.")
                 }
             }
 
@@ -230,8 +252,16 @@ struct BilagSkjemaView: View {
             }
         }
         .tastaturFerdigKnapp()
+        .alert("Kalender", isPresented: Binding(get: { kalenderMelding != nil }, set: { if !$0 { kalenderMelding = nil } })) {
+            Button("OK") { kalenderMelding = nil }
+        } message: {
+            Text(kalenderMelding ?? "")
+        }
         .navigationTitle(erNytt ? "Nytt bilag" : "Bilag")
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: bilag.erBetalt) { _, betalt in
+            if betalt { Kalender.fjern(regning: bilag) }
+        }
         .onChange(of: bilag.erRegning) { _, erRegning in
             if erRegning && bilag.forfallsdato == nil {
                 bilag.forfallsdato = Calendar.current.date(byAdding: .day, value: 14, to: .now)
