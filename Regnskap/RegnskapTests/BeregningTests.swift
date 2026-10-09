@@ -86,3 +86,21 @@ struct FristTests {
         #expect(aarstermin.filter { $0.slag == .mva }.count == 1)
     }
 }
+
+struct ArkivTests {
+    private func dato(_ aar: Int, _ maaned: Int, _ dag: Int) -> Date {
+        Frister.kalender.date(from: DateComponents(year: aar, month: maaned, day: dag))!
+    }
+
+    @Test func ifjorErIBrukFremTilSkattemeldingen() {
+        #expect(Arkiv.erAktivt(2026, naa: dato(2026, 3, 1)))
+        #expect(Arkiv.erAktivt(2025, naa: dato(2026, 5, 31)))
+        #expect(!Arkiv.erAktivt(2025, naa: dato(2026, 6, 1)))
+        #expect(!Arkiv.erAktivt(2024, naa: dato(2026, 1, 10)))
+    }
+
+    @Test func filnavnHarDatoOgIngenUlovligeTegn() {
+        #expect(Arkiv.filnavn(dato: dato(2025, 3, 14), tittel: "Kabel 1/2") == "2025-03-14 Kabel 1-2")
+        #expect(Arkiv.filnavn(dato: dato(2025, 3, 14), tittel: " ") == "2025-03-14")
+    }
+}

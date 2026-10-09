@@ -31,6 +31,7 @@ struct MvaView: View {
                 Text("Mva for app-utviklere har noen spesielle regler. Ring gjerne Skatteetaten (800 80 000) eller spør en regnskapsfører før du registrerer deg, så du er sikker.")
             }
         }
+        .temaBakgrunn()
         .navigationTitle("Mva")
     }
 }
@@ -93,6 +94,7 @@ struct SjekklisteView: View {
             }
             .buttonStyle(.plain)
         }
+        .temaBakgrunn()
         .navigationTitle("Sjekkliste")
     }
 }

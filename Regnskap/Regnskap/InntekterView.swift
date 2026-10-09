@@ -8,7 +8,7 @@ struct InntekterView: View {
     @State private var visNy = false
 
     private var perAar: [(aar: Int, inntekter: [Inntekt])] {
-        Dictionary(grouping: inntekter, by: \.dato.aar)
+        Dictionary(grouping: inntekter.filter { Arkiv.erAktivt($0.dato.aar) }, by: \.dato.aar)
             .sorted { $0.key > $1.key }
             .map { (aar: $0.key, inntekter: $0.value) }
     }
@@ -32,17 +32,7 @@ struct InntekterView: View {
                             NavigationLink {
                                 InntektSkjemaView(inntekt: inntekt)
                             } label: {
-                                HStack {
-                                    VStack(alignment: .leading) {
-                                        Text(inntekt.kilde)
-                                        Text(inntekt.dato.formatted(date: .abbreviated, time: .omitted))
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    Spacer()
-                                    Text(inntekt.belop.kr)
-                                        .monospacedDigit()
-                                }
+                                InntektRad(inntekt: inntekt)
                             }
                         }
                         .onDelete { indekser in
@@ -56,7 +46,12 @@ struct InntekterView: View {
                         }
                     }
                 }
+                let iArkivet = inntekter.filter { !Arkiv.erAktivt($0.dato.aar) }.count
+                if iArkivet > 0 {
+                    ArkivLenke(antall: iArkivet, hva: "inntekter")
+                }
             }
+            .temaBakgrunn()
             .navigationTitle("Inntekter")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -121,6 +116,7 @@ struct InntektSkjemaView: View {
             }
         }
         .tastaturFerdigKnapp()
+        .temaBakgrunn()
         .navigationTitle(erNy ? "Ny inntekt" : "Inntekt")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

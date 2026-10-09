@@ -43,6 +43,7 @@ struct KjoreloggView: View {
                 }
             }
         }
+        .temaBakgrunn()
         .navigationTitle("Kjørelogg")
         .toolbar {
             Button {
@@ -77,16 +78,10 @@ struct KjoreturSkjemaView: View {
             TextField("Fra", text: $tur.fra)
             TextField("Til", text: $tur.til)
             TextField("Formål (f.eks. «Møte med kunde om nettside»)", text: $tur.formal)
-            HStack {
-                Text("Kilometer tur/retur")
-                Spacer()
-                TextField("0", value: $tur.km, format: .number)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(maxWidth: 120)
-            }
+            BelopFelt("Kilometer tur/retur", belop: $tur.km, enhet: "km")
         }
         .tastaturFerdigKnapp()
+        .temaBakgrunn()
         .navigationTitle(erNy ? "Ny tur" : "Tur")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

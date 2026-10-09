@@ -47,26 +47,40 @@ struct OversiktView: View {
                 }
 
                 Section {
-                    VStack(alignment: .leading, spacing: 4) {
+                    HeroKort {
+                        HStack(spacing: 8) {
+                            Logomerke()
+                                .fill(Color.temaFjell)
+                                .frame(width: 22, height: 22)
+                            Text("REGNSKAP \(String(aar))")
+                                .font(.caption.weight(.semibold))
+                                .tracking(1.2)
+                                .foregroundStyle(Color.temaHeroDempet)
+                        }
+                        .padding(.bottom, 6)
                         Text("Sett av til skatt")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.temaHeroDempet)
                         Text(max(0, o.skatt.ekstraSkatt).kr)
-                            .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                            .font(.tittel(.largeTitle))
+                            .monospacedDigit()
                             .contentTransition(.numericText())
                         if o.overskudd > 0 {
                             Text("Ca. \(o.skatt.andel(av: o.overskudd).prosent) av overskuddet. Neste krone skattes med \(o.skatt.marginalsats.prosent).")
                                 .font(.footnote)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.temaHeroDempet)
                         }
                     }
-                    .padding(.vertical, 6)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                }
 
+                Section {
                     RadVerdi("Inntekter", o.inntekter.kr)
                     RadVerdi("Fradrag", "−" + o.fradrag.kr)
                     RadVerdi("Overskudd", o.overskudd.kr, uthevet: true)
                 } header: {
-                    Text("Regnskap \(String(aar))")
+                    Text("Resultat")
                 } footer: {
                     if !Skattesatser.erEksakt(for: aar) {
                         Text("Beregnet med 2026-satser. Satsene for \(String(aar)) er ikke lagt inn ennå.")
@@ -115,6 +129,11 @@ struct OversiktView: View {
                 }
 
                 Section {
+                    NavigationLink {
+                        ArkivView()
+                    } label: {
+                        Label("Arkiv med alle år", systemImage: "archivebox")
+                    }
                     ShareLink(item: Eksport.csvFil(aar: aar, bilag: bilag, inntekter: inntekter, mvaRegistrert: mvaRegistrert),
                               preview: SharePreview("Regnskap \(String(aar)).csv")) {
                         Label("Eksporter \(String(aar)) som regneark (CSV)", systemImage: "square.and.arrow.up")
@@ -123,6 +142,7 @@ struct OversiktView: View {
                     Text("Fint å sende til regnskapsfører, eller å ha for hånden når du fyller ut skattemeldingen. Tallene er estimater, ikke et ferdig regnskap.")
                 }
             }
+            .temaBakgrunn()
             .navigationTitle("Tillerflaten Digital")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

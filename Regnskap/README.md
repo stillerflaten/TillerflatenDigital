@@ -12,7 +12,7 @@ All data lagres på telefonen og synkroniseres til din private iCloud (CloudKit)
 | **Bilag** | Kvitteringer og regninger med ett eller flere bilder (skann flere sider med kameraet eller velg flere bilder), kategori, mva og hvor stor del som brukes i foretaket. Regninger får varsel dagen før forfall. |
 | **Inntekter** | Utbetalinger fra App Store (og andre inntekter), med anslag på hvor mye av hver utbetaling du bør sette av. |
 | **Kalkulatorer** | Skatt på overskuddet oppå lønn, avskrivning av utstyr (direkte fradrag eller saldogruppe a/d), kjørelogg, forklaring av mva for App Store-utviklere og en sjekkliste for nytt ENK. |
-| **Frister** | Forskuddsskatt, skattemelding og (hvis mva-registrert) mva-terminer, med varsler. |
+| **Frister** | Forskuddsskatt, skattemelding og (hvis mva-registrert) mva-terminer, med varsler. Fristene og forfall på regninger kan legges i en egen kalender, «Tillerflaten Digital». |
 
 ## Satser
 

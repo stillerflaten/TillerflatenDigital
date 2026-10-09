@@ -9,9 +9,13 @@ struct BilagListeView: View {
     @State private var visNytt = false
     @State private var bareUbetalte = false
 
+    private func erUbetalt(_ b: Bilag) -> Bool { b.erRegning && !b.erBetalt }
+
+    /// Eldre år ligger i Arkiv. Ubetalte regninger vises alltid, og søk leter i alle år.
     private var filtrert: [Bilag] {
         bilag.filter { b in
-            (!bareUbetalte || (b.erRegning && !b.erBetalt))
+            (!sok.isEmpty || Arkiv.erAktivt(b.dato.aar) || erUbetalt(b))
+            && (!bareUbetalte || erUbetalt(b))
             && (sok.isEmpty
                 || b.tittel.localizedCaseInsensitiveContains(sok)
                 || b.notat.localizedCaseInsensitiveContains(sok)
@@ -19,13 +23,8 @@ struct BilagListeView: View {
         }
     }
 
-    /// Bilagene gruppert per måned, nyeste først.
-    private var maaneder: [(tittel: String, bilag: [Bilag])] {
-        let cal = Frister.kalender
-        let grupper = Dictionary(grouping: filtrert) { cal.dateInterval(of: .month, for: $0.dato)?.start ?? $0.dato }
-        return grupper.keys.sorted(by: >).map { start in
-            (tittel: start.formatted(.dateTime.month(.wide).year()).capitalized, bilag: grupper[start] ?? [])
-        }
+    private var iArkivet: Int {
+        bilag.filter { !Arkiv.erAktivt($0.dato.aar) && !erUbetalt($0) }.count
     }
 
     var body: some View {
@@ -41,31 +40,12 @@ struct BilagListeView: View {
                             .buttonStyle(.borderedProminent)
                     }
                 }
-                ForEach(maaneder, id: \.tittel) { maaned in
-                    Section {
-                        ForEach(maaned.bilag) { b in
-                            NavigationLink {
-                                BilagSkjemaView(bilag: b)
-                            } label: {
-                                BilagRad(bilag: b)
-                            }
-                        }
-                        .onDelete { indekser in
-                            for i in indekser {
-                                let b = maaned.bilag[i]
-                                Varsler.fjernRegning(b)
-                                context.delete(b)
-                            }
-                        }
-                    } header: {
-                        HStack {
-                            Text(maaned.tittel)
-                            Spacer()
-                            Text(maaned.bilag.reduce(0) { $0 + $1.belop }.kr)
-                        }
-                    }
+                BilagMaanedSeksjoner(bilag: filtrert)
+                if sok.isEmpty && iArkivet > 0 {
+                    ArkivLenke(antall: iArkivet, hva: "bilag")
                 }
             }
+            .temaBakgrunn()
             .navigationTitle("Bilag")
             .searchable(text: $sok, prompt: "Søk i bilag")
             .toolbar {
@@ -117,7 +97,8 @@ struct BilagRad: View {
             } else {
                 Image(systemName: bilag.kategori.ikon)
                     .frame(width: 40, height: 40)
-                    .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 6))
+                    .foregroundStyle(Color.accentColor)
+                    .background(Color.temaAksentMyk, in: RoundedRectangle(cornerRadius: 6))
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(bilag.tittel.isEmpty ? bilag.kategori.navn : bilag.tittel)
@@ -149,7 +130,21 @@ struct BilagSkjemaView: View {
     // @State holder på det samme objektet selv om skjermen tegnes på nytt,
     // så et nytt bilag ikke mistes mens du fyller det ut.
     @State private var bilag: Bilag
+    @State private var kalenderMelding: String?
     private let erNytt: Bool
+
+    private func leggForfallIKalender() async {
+        guard await Kalender.beOmTilgang() else {
+            kalenderMelding = Kalender.Feil.ingenTilgang.errorDescription
+            return
+        }
+        do {
+            try Kalender.leggInn(regning: bilag)
+            kalenderMelding = "Forfallet er lagt i kalenderen «\(Kalender.navn)», med varsel dagen før."
+        } catch {
+            kalenderMelding = "Kunne ikke legge inn i kalenderen: \(error.localizedDescription)"
+        }
+    }
 
     init(bilag: Bilag?) {
         _bilag = State(initialValue: bilag ?? Bilag())
@@ -207,10 +202,17 @@ struct BilagSkjemaView: View {
                         set: { bilag.forfallsdato = $0 }
                     ), displayedComponents: .date)
                     Toggle("Betalt", isOn: $bilag.erBetalt)
+                    if !bilag.erBetalt && bilag.forfallsdato != nil {
+                        Button {
+                            Task { await leggForfallIKalender() }
+                        } label: {
+                            Label("Legg forfallet i kalenderen", systemImage: "calendar.badge.plus")
+                        }
+                    }
                 }
             } footer: {
                 if bilag.erRegning && !bilag.erBetalt {
-                    Text("Du får et varsel dagen før forfall.")
+                    Text("Du får et varsel dagen før forfall. Legger du det i kalenderen, fjernes det derfra når du markerer regningen som betalt.")
                 }
             }
 
@@ -230,8 +232,17 @@ struct BilagSkjemaView: View {
             }
         }
         .tastaturFerdigKnapp()
+        .alert("Kalender", isPresented: Binding(get: { kalenderMelding != nil }, set: { if !$0 { kalenderMelding = nil } })) {
+            Button("OK") { kalenderMelding = nil }
+        } message: {
+            Text(kalenderMelding ?? "")
+        }
+        .temaBakgrunn()
         .navigationTitle(erNytt ? "Nytt bilag" : "Bilag")
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: bilag.erBetalt) { _, betalt in
+            if betalt { Kalender.fjern(regning: bilag) }
+        }
         .onChange(of: bilag.erRegning) { _, erRegning in
             if erRegning && bilag.forfallsdato == nil {
                 bilag.forfallsdato = Calendar.current.date(byAdding: .day, value: 14, to: .now)
