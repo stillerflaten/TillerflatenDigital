@@ -166,6 +166,7 @@ struct FakturaView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage(Innstilling.mvaRegistrert) private var mvaRegistrert = false
     @Query(sort: \Kunde.navn) private var kunder: [Kunde]
+    @Query private var alleFakturaer: [Faktura]
 
     @Bindable var faktura: Faktura
 
@@ -174,8 +175,25 @@ struct FakturaView: View {
     @State private var bekreftSlett = false
     @State private var visBetalt = false
     @State private var bekreftAngre = false
+    @State private var bekreftSlettSendt = false
     @State private var betaltDato = Date.now
     @State private var pdf: URL?
+
+    /// Bare den siste fakturaen kan slettes, så nummerserien ikke får hull.
+    private var erSisteFaktura: Bool {
+        faktura.nummer > 0 && faktura.nummer == alleFakturaer.map(\.nummer).max()
+    }
+
+    /// Går tilbake først, og sletter når skjermen er borte.
+    private func slettOgLukk() {
+        let f = faktura
+        dismiss()
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+            context.delete(f)
+            try? context.save()
+        }
+    }
 
     private var valgtKunde: Kunde? {
         guard let id = faktura.kundeUUID else { return nil }
@@ -323,6 +341,16 @@ struct FakturaView: View {
         }
 
         Section {
+            NavigationLink {
+                FakturaUtkastVisning(faktura: faktura)
+            } label: {
+                Label("Forhåndsvis PDF", systemImage: "doc.text.magnifyingglass")
+            }
+        } footer: {
+            Text("Se hvordan fakturaen blir, uten at den får nummer. Fint for å teste.")
+        }
+
+        Section {
             if !mangler.isEmpty {
                 ForEach(mangler, id: \.self) { m in
                     Label(m, systemImage: "exclamationmark.circle")
@@ -352,16 +380,7 @@ struct FakturaView: View {
         Section {
             Button("Slett utkastet", role: .destructive) { bekreftSlett = true }
                 .confirmationDialog("Slette utkastet?", isPresented: $bekreftSlett, titleVisibility: .visible) {
-                    Button("Slett", role: .destructive) {
-                        // Gå tilbake først, og slett når skjermen er borte.
-                        let f = faktura
-                        dismiss()
-                        Task { @MainActor in
-                            try? await Task.sleep(for: .milliseconds(500))
-                            context.delete(f)
-                            try? context.save()
-                        }
-                    }
+                    Button("Slett", role: .destructive) { slettOgLukk() }
                 }
         }
     }
@@ -371,17 +390,7 @@ struct FakturaView: View {
     @ViewBuilder
     private var sendtSeksjoner: some View {
         Section {
-            HStack {
-                Spacer(minLength: 0)
-                let skala = 0.52
-                FakturaSide(faktura: faktura)
-                    .scaleEffect(skala, anchor: .topLeading)
-                    .frame(width: FakturaSide.a4.width * skala, height: FakturaSide.a4.height * skala, alignment: .topLeading)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                    .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
-                Spacer(minLength: 0)
-            }
-            .listRowBackground(Color.clear)
+            FakturaForhandsvisning(faktura: faktura)
         }
 
         Section {
@@ -427,6 +436,65 @@ struct FakturaView: View {
         } footer: {
             Text("Når kunden har betalt, legges beløpet automatisk inn under Inntekter. En sendt faktura skal ikke slettes eller endres. Er noe feil, rettes det med en kreditnota.")
         }
+
+        if faktura.status == .sendt && erSisteFaktura {
+            Section {
+                Button("Slett fakturaen", role: .destructive) { bekreftSlettSendt = true }
+                    .confirmationDialog("Slette faktura \(faktura.nummer)?", isPresented: $bekreftSlettSendt, titleVisibility: .visible) {
+                        Button("Slett, den er ikke sendt til noen", role: .destructive) { slettOgLukk() }
+                    } message: {
+                        Text("Gjør dette bare hvis fakturaen aldri er sendt til en kunde, for eksempel når du har testet. Nummer \(faktura.nummer) blir ledig igjen.")
+                    }
+            } footer: {
+                Text("Den siste fakturaen kan slettes hvis den ikke er sendt til noen. Da blir nummeret brukt på neste faktura, så serien får ikke hull.")
+            }
+        }
+    }
+}
+
+/// Fakturaen i liten størrelse, slik den ser ut som PDF.
+struct FakturaForhandsvisning: View {
+    let faktura: Faktura
+    private let skala: CGFloat = 0.52
+
+    var body: some View {
+        HStack {
+            Spacer(minLength: 0)
+            FakturaSide(faktura: faktura)
+                .scaleEffect(skala, anchor: .topLeading)
+                .frame(width: FakturaSide.a4.width * skala, height: FakturaSide.a4.height * skala, alignment: .topLeading)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
+            Spacer(minLength: 0)
+        }
+        .listRowBackground(Color.clear)
+    }
+}
+
+/// Forhåndsvisning av et utkast. Ingenting lagres, og fakturaen får ikke nummer.
+struct FakturaUtkastVisning: View {
+    let faktura: Faktura
+    @State private var pdf: URL?
+
+    var body: some View {
+        List {
+            Section {
+                FakturaForhandsvisning(faktura: faktura)
+            } footer: {
+                Text("Dette er et utkast, merket UTKAST. Nummeret kommer når du ferdigstiller fakturaen.")
+            }
+            if let pdf {
+                Section {
+                    ShareLink(item: pdf) {
+                        Label("Åpne eller del utkastet som PDF", systemImage: "square.and.arrow.up")
+                    }
+                }
+            }
+        }
+        .temaBakgrunn()
+        .navigationTitle("Forhåndsvisning")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { pdf = FakturaPDF.fil(for: faktura) }
     }
 }
 
