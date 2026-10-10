@@ -12,6 +12,18 @@ struct FakturaSide: View {
     private let petrol = Color(red: 0.09, green: 0.20, blue: 0.23)
     private let fjell = Color(red: 0.55, green: 0.78, blue: 0.81)
 
+    // Ferdige fakturaer bruker opplysningene som ble låst. Et utkast viser det som står i Firmaopplysninger nå.
+    private var erUtkast: Bool { faktura.nummer == 0 }
+    private func firma(_ lagret: String, _ nokkel: String, standard: String = "") -> String {
+        erUtkast ? (UserDefaults.standard.string(forKey: nokkel) ?? standard) : lagret
+    }
+    private var selgerNavn: String { firma(faktura.selgerNavn, Firma.navn, standard: Firma.standardNavn) }
+    private var selgerEier: String { firma(faktura.selgerEier, Firma.eier) }
+    private var selgerAdresse: String { firma(faktura.selgerAdresse, Firma.adresse) }
+    private var selgerOrgnr: String { firma(faktura.selgerOrgnr, Firma.orgnr) }
+    private var selgerKontonr: String { firma(faktura.selgerKontonr, Firma.kontonr) }
+    private var selgerEpost: String { firma(faktura.selgerEpost, Firma.epost, standard: Firma.standardEpost) }
+
     private func dato(_ d: Date) -> String {
         d.formatted(Date.FormatStyle(date: .numeric, time: .omitted).locale(Locale(identifier: "nb_NO")))
     }
@@ -37,6 +49,14 @@ struct FakturaSide: View {
             .padding(.bottom, 30)
         }
         .frame(width: Self.a4.width, height: Self.a4.height, alignment: .topLeading)
+        .overlay {
+            if erUtkast {
+                Text("UTKAST")
+                    .font(.system(size: 110, weight: .black))
+                    .foregroundStyle(Color.red.opacity(0.12))
+                    .rotationEffect(.degrees(-30))
+            }
+        }
         .background(Color.white)
         .environment(\.colorScheme, .light)
     }
@@ -47,7 +67,7 @@ struct FakturaSide: View {
                 Logomerke()
                     .fill(fjell)
                     .frame(width: 30, height: 30)
-                Text(faktura.selgerNavn.isEmpty ? Firma.lagretNavn : faktura.selgerNavn)
+                Text(selgerNavn)
                     .font(.system(size: 20, weight: .semibold, design: .serif))
             }
             Spacer()
@@ -80,10 +100,10 @@ struct FakturaSide: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 overskrift("Fra")
-                Text(faktura.selgerEier).fontWeight(.semibold)
-                Text(faktura.selgerAdresse)
-                Text("Org.nr. \(Fakturering.orgnr(faktura.selgerOrgnr))\(faktura.mvaSats > 0 ? " MVA" : "")")
-                Text(faktura.selgerEpost)
+                Text(selgerEier).fontWeight(.semibold)
+                Text(selgerAdresse)
+                Text("Org.nr. \(Fakturering.orgnr(selgerOrgnr))\(faktura.mvaSats > 0 ? " MVA" : "")")
+                Text(selgerEpost)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -159,7 +179,7 @@ struct FakturaSide: View {
         HStack(spacing: 30) {
             VStack(alignment: .leading, spacing: 2) {
                 overskrift("Kontonummer")
-                Text(Fakturering.kontonr(faktura.selgerKontonr))
+                Text(Fakturering.kontonr(selgerKontonr))
                     .font(.system(size: 13, weight: .semibold))
                     .monospacedDigit()
             }
@@ -177,7 +197,8 @@ struct FakturaSide: View {
             Spacer(minLength: 0)
         }
         .overlay(alignment: .bottomLeading) {
-            Text("Merk betalingen med fakturanummer \(faktura.nummer).")
+            Text(erUtkast ? "Utkast. Fakturanummeret kommer når fakturaen ferdigstilles."
+                          : "Merk betalingen med fakturanummer \(faktura.nummer).")
                 .font(.system(size: 9))
                 .foregroundStyle(graa)
                 .offset(y: 16)
@@ -192,7 +213,7 @@ struct FakturaSide: View {
     private var bunn: some View {
         VStack(spacing: 6) {
             Rectangle().fill(linje).frame(height: 0.5)
-            Text([faktura.selgerNavn, "Org.nr. \(Fakturering.orgnr(faktura.selgerOrgnr))", faktura.selgerEpost]
+            Text([selgerNavn, "Org.nr. \(Fakturering.orgnr(selgerOrgnr))", selgerEpost]
                 .filter { !$0.isEmpty }
                 .joined(separator: "  ·  "))
                 .font(.system(size: 8))
@@ -237,7 +258,8 @@ enum FakturaPDF {
     }
 
     static func filnavn(for faktura: Faktura) -> String {
-        Arkiv.filnavn(dato: faktura.fakturadato, tittel: "Faktura \(faktura.nummer) \(faktura.kundeNavn)") + ".pdf"
+        let hva = faktura.nummer > 0 ? "Faktura \(faktura.nummer)" : "Utkast faktura"
+        return Arkiv.filnavn(dato: faktura.fakturadato, tittel: "\(hva) \(faktura.kundeNavn)") + ".pdf"
     }
 
     /// Lagrer PDF-en i en midlertidig fil, så den kan deles eller sendes på e-post.
