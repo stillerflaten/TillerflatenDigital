@@ -31,7 +31,7 @@ Tallene er estimater og erstatter ikke Skatteetaten eller en regnskapsfører.
 1. Åpne **GitHub Desktop**.
 2. Velg repoet **TillerflatenDigital** øverst til venstre.
 3. Klikk **Fetch origin**.
-4. Klikk på **Current Branch** og velg `claude/regnskapsapp-4hc1kn`.
+4. Klikk på **Current Branch** og velg `main`, og klikk **Pull origin**.
 5. Velg **Repository → Show in Finder**.
 6. Gå inn i mappen `Regnskap` og dobbeltklikk på `Regnskap.xcodeproj`. Xcode åpner seg.
 7. Klikk på det blå **Regnskap**-ikonet øverst i venstre kolonne, velg target **Regnskap**, fanen **Signing & Capabilities**, og sjekk at **Team** er ditt (samme som i HockeySub).
@@ -43,6 +43,16 @@ Tallene er estimater og erstatter ikke Skatteetaten eller en regnskapsfører.
 2. Du skal se **iCloud** med **CloudKit** krysset av. Under **Containers**, sjekk at `iCloud.Silje.Regnskap` er krysset av. Er den rød eller mangler, trykk **+** og skriv `iCloud.Silje.Regnskap`, og trykk deretter på det lille oppdateringsikonet.
 3. Du skal også se **Push Notifications** og **Background Modes** med **Remote notifications** krysset av.
 4. Kjør appen. Under tannhjulet → Sikkerhetskopi skal det stå «iCloud-synk: På».
+
+### Kjør appen på Macen
+
+Appen kjører på Mac med Apple-chip (M1 eller nyere) som «Designed for iPad». Den bruker samme iCloud-data som telefonen, så alt du legger inn ett sted, dukker opp det andre.
+
+1. Velg **My Mac (Designed for iPad)** i enhetsvelgeren øverst i Xcode (der du ellers velger iPhone-en).
+2. Trykk **▶︎**. Første gang kan Xcode spørre om å registrere Macen i utviklerkontoen. Svar ja.
+3. Appen ligger etterpå i Programmer-mappen og kan åpnes derfra eller festes i Dock.
+
+Skanneren finnes ikke på Mac. Der legger du til bilder fra Bilder-appen, og iCloud-bilder tatt med telefonen dukker opp der.
 
 Før appen sendes til TestFlight eller App Store, må databasestrukturen publiseres: gå til [CloudKit Console](https://icloud.developer.apple.com), velg containeren og trykk **Deploy Schema Changes…** til Production.
 
