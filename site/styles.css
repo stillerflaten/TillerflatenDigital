@@ -297,6 +297,72 @@ a { color: var(--accent); }
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
+/* Prices */
+.cards-4 { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.card .price {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin: -4px 0 12px;
+}
+.price-note { color: var(--muted); max-width: 70ch; margin: 28px 0 0; }
+
+/* How it works */
+.steps {
+  list-style: none;
+  counter-reset: step;
+  padding: 0;
+  margin: 28px 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 28px;
+}
+.step { counter-increment: step; }
+.step::before {
+  content: counter(step);
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+.step h3 { font-size: 1.15rem; }
+.step p { color: var(--muted); margin: 0; }
+
+/* Contact form */
+.form {
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: left;
+  display: grid;
+  gap: 18px;
+}
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.form label { display: grid; align-content: start; gap: 6px; font-weight: 500; font-size: .95rem; }
+.form .opt { color: var(--muted); font-weight: 400; }
+.form input, .form select, .form textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 14px;
+  width: 100%;
+}
+.form textarea { resize: vertical; }
+.form input:focus, .form select:focus, .form textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+.form button { justify-self: start; border: 0; cursor: pointer; font-family: inherit; }
+.form .hp { position: absolute; left: -9999px; }
+.form-alt { color: var(--muted); margin-top: 24px; font-size: .95rem; }
+
 @media (max-width: 860px) {
   .app { grid-template-columns: 1fr; gap: 28px; }
   .shots { justify-self: start; }
@@ -311,5 +377,6 @@ a { color: var(--accent); }
   .section { padding: 56px 0; }
   .about { grid-template-columns: 1fr; gap: 0; }
   .shots { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 12px; margin-right: -20px; padding-right: 20px; }
+  .form-row { grid-template-columns: 1fr; }
   .shots img { flex: 0 0 44%; width: 44%; min-width: 0; scroll-snap-align: start; }
 }
