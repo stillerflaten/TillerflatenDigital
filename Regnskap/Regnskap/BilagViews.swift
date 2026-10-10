@@ -5,6 +5,7 @@ struct BilagListeView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \Bilag.dato, order: .reverse) private var bilag: [Bilag]
 
+    @Query private var fasteUtgifter: [FastUtgift]
     @State private var sok = ""
     @State private var visNytt = false
     @State private var bareUbetalte = false
@@ -30,6 +31,25 @@ struct BilagListeView: View {
     var body: some View {
         NavigationStack {
             List {
+                if sok.isEmpty {
+                    let venter = fasteUtgifter.filter(\.venterPaaKvittering).count
+                    Section {
+                        NavigationLink {
+                            FasteUtgifterView()
+                        } label: {
+                            HStack {
+                                Label("Faste utgifter", systemImage: "repeat")
+                                Spacer()
+                                if venter > 0 {
+                                    Text("\(venter) kvittering\(venter == 1 ? "" : "er") å legge inn")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(Color.orange)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if bilag.isEmpty {
                     ContentUnavailableView {
                         Label("Ingen bilag ennå", systemImage: "doc.text.viewfinder")
@@ -132,6 +152,7 @@ struct BilagSkjemaView: View {
     @State private var bilag: Bilag
     @State private var kalenderMelding: String?
     private let erNytt: Bool
+    private var lagret: (() -> Void)? = nil
 
     private func leggForfallIKalender() async {
         guard await Kalender.beOmTilgang() else {
@@ -149,6 +170,13 @@ struct BilagSkjemaView: View {
     init(bilag: Bilag?) {
         _bilag = State(initialValue: bilag ?? Bilag())
         erNytt = bilag == nil
+    }
+
+    /// Nytt bilag som er fylt ut på forhånd, f.eks. fra en fast utgift.
+    init(forslag: Bilag, lagret: @escaping () -> Void) {
+        _bilag = State(initialValue: forslag)
+        erNytt = true
+        self.lagret = lagret
     }
 
     var body: some View {
@@ -262,6 +290,7 @@ struct BilagSkjemaView: View {
                         context.insert(bilag)
                         for v in bilag.vedlegg ?? [] { context.insert(v) }
                         Varsler.planleggRegning(bilag)
+                        lagret?()
                         dismiss()
                     }
                     .disabled(bilag.belop <= 0)

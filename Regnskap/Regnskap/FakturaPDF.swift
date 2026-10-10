@@ -35,7 +35,11 @@ struct FakturaSide: View {
                 parter
                 linjer
                 summer
-                betaling
+                if faktura.erKreditnota {
+                    kreditering
+                } else {
+                    betaling
+                }
                 if !faktura.merknad.trimmet.isEmpty {
                     Text(faktura.merknad)
                         .font(.system(size: 10))
@@ -72,7 +76,7 @@ struct FakturaSide: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 3) {
-                Text("FAKTURA")
+                Text(faktura.erKreditnota ? "KREDITNOTA" : "FAKTURA")
                     .font(.system(size: 18, weight: .bold))
                     .tracking(2)
                 Text(faktura.nummer > 0 ? "Nr. \(faktura.nummer)" : "UTKAST")
@@ -110,7 +114,11 @@ struct FakturaSide: View {
             VStack(alignment: .trailing, spacing: 3) {
                 rad("Fakturadato", dato(faktura.fakturadato))
                 rad("Levert", dato(faktura.leveringsdato))
-                rad("Forfall", dato(faktura.forfallsdato), uthevet: true)
+                if faktura.erKreditnota {
+                    rad("Krediterer", "Faktura \(faktura.kreditererNummer)", uthevet: true)
+                } else {
+                    rad("Forfall", dato(faktura.forfallsdato), uthevet: true)
+                }
             }
             .fixedSize()
         }
@@ -134,8 +142,8 @@ struct FakturaSide: View {
                 HStack(alignment: .top) {
                     Text(l.beskrivelse).frame(maxWidth: .infinity, alignment: .leading)
                     Text(Fakturering.antall(l.antall)).frame(width: 50, alignment: .trailing)
-                    Text(Fakturering.kroner(l.enhetspris)).frame(width: 80, alignment: .trailing)
-                    Text(Fakturering.kroner(l.belop)).frame(width: 90, alignment: .trailing)
+                    Text(Fakturering.kroner(faktura.fortegn * l.enhetspris)).frame(width: 80, alignment: .trailing)
+                    Text(Fakturering.kroner(faktura.fortegn * l.belop)).frame(width: 90, alignment: .trailing)
                 }
                 .font(.system(size: 10))
                 .monospacedDigit()
@@ -155,7 +163,7 @@ struct FakturaSide: View {
                     Fakturering.kroner(faktura.mvaBelop))
                 Rectangle().fill(svart).frame(width: 200, height: 1)
                 HStack {
-                    Text("Å betale")
+                    Text(faktura.erKreditnota ? "Til gode" : "Å betale")
                     Spacer()
                     Text(Fakturering.kroner(faktura.total))
                 }
@@ -172,6 +180,18 @@ struct FakturaSide: View {
             .font(.system(size: 10))
             .monospacedDigit()
         }
+        .foregroundStyle(svart)
+    }
+
+    private var kreditering: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            overskrift("Kreditnota")
+            Text("Beløpet krediteres faktura nr. \(faktura.kreditererNummer). Har du allerede betalt fakturaen, får du beløpet tilbake.")
+                .font(.system(size: 11))
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(red: 0.95, green: 0.96, blue: 0.95), in: RoundedRectangle(cornerRadius: 8))
         .foregroundStyle(svart)
     }
 
@@ -258,7 +278,8 @@ enum FakturaPDF {
     }
 
     static func filnavn(for faktura: Faktura) -> String {
-        let hva = faktura.nummer > 0 ? "Faktura \(faktura.nummer)" : "Utkast faktura"
+        let type = faktura.erKreditnota ? "Kreditnota" : "Faktura"
+        let hva = faktura.nummer > 0 ? "\(type) \(faktura.nummer)" : "Utkast \(type.lowercased())"
         return Arkiv.filnavn(dato: faktura.fakturadato, tittel: "\(hva) \(faktura.kundeNavn)") + ".pdf"
     }
 

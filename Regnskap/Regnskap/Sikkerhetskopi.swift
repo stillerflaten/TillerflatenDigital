@@ -15,6 +15,7 @@ struct Sikkerhetskopi: Codable {
     // Kom med i en senere versjon, derfor valgfrie (eldre kopier har dem ikke).
     var kunder: [KundeKopi]?
     var fakturaer: [FakturaKopi]?
+    var fasteUtgifter: [FastUtgiftKopi]?
 
     struct VedleggKopi: Codable {
         var uuid: UUID
@@ -90,6 +91,19 @@ struct Sikkerhetskopi: Codable {
         var orgnr: String
         var epost: String
         var opprettet: Date
+        var notat: String?
+    }
+
+    struct FastUtgiftKopi: Codable {
+        var uuid: UUID
+        var navn: String
+        var belop: Double
+        var kategoriRaw: String
+        var intervallRaw: String
+        var nesteTrekk: Date
+        var naeringsandel: Double
+        var aktiv: Bool
+        var notat: String
     }
 
     struct LinjeKopi: Codable {
@@ -123,6 +137,8 @@ struct Sikkerhetskopi: Codable {
         var selgerEpost: String
         var inntektUUID: UUID?
         var linjer: [LinjeKopi]
+        var kreditererUUID: UUID?
+        var kreditererNummer: Int?
     }
 
     // MARK: Lage kopi
@@ -163,7 +179,13 @@ struct Sikkerhetskopi: Codable {
             betalingsfrist: Firma.lagretBetalingsfrist,
             startnummer: Firma.lagretStartnummer)
         kopi.kunder = try context.fetch(FetchDescriptor<Kunde>()).map {
-            KundeKopi(uuid: $0.uuid, navn: $0.navn, adresse: $0.adresse, orgnr: $0.orgnr, epost: $0.epost, opprettet: $0.opprettet)
+            KundeKopi(uuid: $0.uuid, navn: $0.navn, adresse: $0.adresse, orgnr: $0.orgnr, epost: $0.epost,
+                      opprettet: $0.opprettet, notat: $0.notat)
+        }
+        kopi.fasteUtgifter = try context.fetch(FetchDescriptor<FastUtgift>()).map {
+            FastUtgiftKopi(uuid: $0.uuid, navn: $0.navn, belop: $0.belop, kategoriRaw: $0.kategoriRaw,
+                           intervallRaw: $0.intervallRaw, nesteTrekk: $0.nesteTrekk, naeringsandel: $0.naeringsandel,
+                           aktiv: $0.aktiv, notat: $0.notat)
         }
         kopi.fakturaer = try context.fetch(FetchDescriptor<Faktura>()).map { f in
             FakturaKopi(uuid: f.uuid, nummer: f.nummer, statusRaw: f.statusRaw, fakturadato: f.fakturadato,
@@ -176,7 +198,8 @@ struct Sikkerhetskopi: Codable {
                         linjer: f.sorterteLinjer.map {
                             LinjeKopi(uuid: $0.uuid, nr: $0.nr, beskrivelse: $0.beskrivelse,
                                       antall: $0.antall, enhetspris: $0.enhetspris)
-                        })
+                        },
+                        kreditererUUID: f.kreditererUUID, kreditererNummer: f.kreditererNummer)
         }
         return kopi
     }
@@ -274,6 +297,7 @@ struct Sikkerhetskopi: Codable {
             kunde.orgnr = k.orgnr
             kunde.epost = k.epost
             kunde.opprettet = k.opprettet
+            kunde.notat = k.notat ?? ""
             context.insert(kunde)
             resultat.lagtTil += 1
         }
@@ -303,6 +327,8 @@ struct Sikkerhetskopi: Codable {
             f.selgerKontonr = k.selgerKontonr
             f.selgerEpost = k.selgerEpost
             f.inntektUUID = k.inntektUUID
+            f.kreditererUUID = k.kreditererUUID
+            f.kreditererNummer = k.kreditererNummer ?? 0
             context.insert(f)
             var nye: [FakturaLinje] = []
             for lk in k.linjer {
@@ -312,6 +338,23 @@ struct Sikkerhetskopi: Codable {
                 nye.append(l)
             }
             f.linjer = nye
+            resultat.lagtTil += 1
+        }
+
+        let finnesFast = Set(try context.fetch(FetchDescriptor<FastUtgift>()).map(\.uuid))
+        for k in fasteUtgifter ?? [] {
+            guard !finnesFast.contains(k.uuid) else { resultat.hoppetOver += 1; continue }
+            let u = FastUtgift(navn: k.navn)
+            u.uuid = k.uuid
+            u.belop = k.belop
+            u.kategoriRaw = k.kategoriRaw
+            u.intervallRaw = k.intervallRaw
+            u.nesteTrekk = k.nesteTrekk
+            u.naeringsandel = k.naeringsandel
+            u.aktiv = k.aktiv
+            u.notat = k.notat
+            context.insert(u)
+            Varsler.planleggFastUtgift(u)
             resultat.lagtTil += 1
         }
 

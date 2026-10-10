@@ -7,6 +7,7 @@ struct OversiktView: View {
     @Query private var driftsmidler: [Driftsmiddel]
     @Query private var turer: [Kjoretur]
     @Query(sort: \Faktura.forfallsdato) private var fakturaer: [Faktura]
+    @Query(sort: \FastUtgift.nesteTrekk) private var fasteUtgifter: [FastUtgift]
 
     @AppStorage(Innstilling.lonn) private var lonn: Double = 0
     @AppStorage(Innstilling.mvaRegistrert) private var mvaRegistrert = false
@@ -110,7 +111,16 @@ struct OversiktView: View {
                     }
                 }
 
-                let utestaende = fakturaer.filter { $0.status == .sendt }
+                let kvitteringer = fasteUtgifter.filter(\.venterPaaKvittering)
+                if !kvitteringer.isEmpty {
+                    Section("Kvitteringer å legge inn") {
+                        ForEach(kvitteringer) { u in
+                            VenterPaaKvitteringRad(utgift: u)
+                        }
+                    }
+                }
+
+                let utestaende = fakturaer.filter { $0.status == .sendt && !$0.erKreditnota }
                 if !utestaende.isEmpty {
                     Section("Fakturaer som venter på betaling") {
                         ForEach(utestaende) { f in
