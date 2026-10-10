@@ -79,6 +79,21 @@ struct FakturaListeView: View {
                     }
                 }
             }
+
+            Section {
+                NavigationLink {
+                    KundeListeView()
+                } label: {
+                    Label("Kunder", systemImage: "person.2")
+                }
+                NavigationLink {
+                    FirmaView()
+                } label: {
+                    Label("Firmaopplysninger", systemImage: "building.2")
+                }
+            } footer: {
+                Text("Her endrer du kunder og opplysningene om deg som står på fakturaen. Endringene gjelder fakturaer du ferdigstiller etterpå.")
+            }
         }
         .temaBakgrunn()
         .navigationTitle("Fakturaer")
@@ -542,6 +557,9 @@ struct KundeListeView: View {
         .temaBakgrunn()
         .navigationTitle("Kunder")
         .toolbar {
+            if !kunder.isEmpty {
+                EditButton()
+            }
             Button {
                 visNy = true
             } label: {
@@ -561,6 +579,7 @@ struct KundeSkjemaView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var kunde: Kunde
+    @State private var bekreftSlett = false
     private let erNy: Bool
     private let lagret: ((Kunde) -> Void)?
 
@@ -584,6 +603,26 @@ struct KundeSkjemaView: View {
                     .keyboardType(.numberPad)
             } footer: {
                 Text("Endrer du en kunde, gjelder det nye fakturaer. Fakturaer som er sendt, beholder opplysningene de ble sendt med.")
+            }
+
+            if !erNy {
+                Section {
+                    Button("Slett kunden", role: .destructive) { bekreftSlett = true }
+                        .confirmationDialog("Slette \(kunde.navn)?", isPresented: $bekreftSlett, titleVisibility: .visible) {
+                            Button("Slett", role: .destructive) {
+                                // Gå tilbake først, og slett når skjermen er borte.
+                                let k = kunde
+                                dismiss()
+                                Task { @MainActor in
+                                    try? await Task.sleep(for: .milliseconds(500))
+                                    context.delete(k)
+                                    try? context.save()
+                                }
+                            }
+                        } message: {
+                            Text("Fakturaer du har laget til kunden, blir ikke berørt.")
+                        }
+                }
             }
         }
         .tastaturFerdigKnapp()
