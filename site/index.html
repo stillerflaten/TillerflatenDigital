@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
   <header class="topbar">
@@ -57,34 +57,71 @@
 
     <section id="tjenester" class="section">
       <div class="wrap">
-        <h2>Tjenester</h2>
-        <div class="cards">
-          <article class="card">
-            <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><line x1="10" y1="18" x2="14" y2="18"/></svg>
-            </div>
-            <h3>Apper</h3>
-            <p>Egne apper for iPhone og iPad, bygget med Swift og SwiftUI. Fokus på ryddig design, personvern og at ting bare fungerer.</p>
-          </article>
+        <h2>Tjenester og priser</h2>
+        <p class="section-lead">Faste priser, så du vet hva det koster før vi starter.</p>
+        <div class="cards cards-4">
           <article class="card">
             <div class="card-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="9" x2="22" y2="9"/><circle cx="5.5" cy="6.5" r=".6"/><circle cx="8" cy="6.5" r=".6"/></svg>
             </div>
-            <h3>Nettsider <span class="tag">Kommer</span></h3>
-            <p>Raske, mobilvennlige nettsider for små bedrifter. Enkle å oppdatere, og laget for at kundene dine finner det de leter etter.</p>
+            <h3>Enkel nettside</h3>
+            <p class="price">fra 7 500 kr</p>
+            <p>Én side med det viktigste: hvem dere er, hva dere tilbyr og hvordan kundene når dere. Rask, mobilvennlig og på eget domene.</p>
           </article>
           <article class="card">
             <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+              <svg viewBox="0 0 24 24"><rect x="6" y="2" width="14" height="17" rx="2"/><path d="M4 6v14a2 2 0 0 0 2 2h10"/></svg>
             </div>
-            <h3>Rådgivning</h3>
-            <p>Usikker på om du trenger en app, en nettside eller ingen av delene? Jeg hjelper deg å finne ut hva som faktisk løser behovet.</p>
+            <h3>Nettside med flere sider</h3>
+            <p class="price">fra 15 000 kr</p>
+            <p>Opptil fem sider, for eksempel forside, tjenester, om oss, priser og kontakt. Med kontaktskjema og hjelp til å bli funnet på Google.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><line x1="13" y1="7" x2="17" y2="11"/></svg>
+            </div>
+            <h3>Oppdatering av nettside</h3>
+            <p class="price">fra 2 500 kr</p>
+            <p>Har dere allerede en side? Jeg fornyer tekst og bilder, gjør den raskere eller får den til å fungere godt på mobil.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><line x1="10" y1="18" x2="14" y2="18"/></svg>
+            </div>
+            <h3>App for iPhone og iPad</h3>
+            <p class="price">fra 40 000 kr</p>
+            <p>En app med ett tydelig formål, bygget med Swift og SwiftUI. Endelig pris avtales etter en prat om hva appen skal gjøre.</p>
           </article>
         </div>
+        <p class="price-note">Alle oppdrag får en fastpris i tilbudet før jeg starter, og første samtale er alltid gratis. Drift og små endringer etter lansering koster fra 250 kr i måneden.</p>
       </div>
     </section>
 
-    <section id="apper" class="section section-alt">
+    <section id="slik" class="section section-alt">
+      <div class="wrap">
+        <h2>Slik foregår det</h2>
+        <ol class="steps">
+          <li class="step">
+            <h3>En uforpliktende prat</h3>
+            <p>Du forteller hva du trenger, og jeg spør om det jeg lurer på. Det koster ingenting.</p>
+          </li>
+          <li class="step">
+            <h3>Tilbud med fastpris</h3>
+            <p>Du får et skriftlig tilbud med pris, innhold og leveringstid. Ingen overraskelser.</p>
+          </li>
+          <li class="step">
+            <h3>Jeg lager, du gir tilbakemelding</h3>
+            <p>Du ser løsningen underveis og sier fra om det er noe du vil endre.</p>
+          </li>
+          <li class="step">
+            <h3>Lansering</h3>
+            <p>Siden eller appen går live, og jeg viser deg hvordan du bruker den.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="apper" class="section">
       <div class="wrap">
         <h2>Apper</h2>
         <p class="section-lead">Apper jeg har laget og selger i App Store.</p>
@@ -136,7 +173,7 @@
       </div>
     </section>
 
-    <section id="om" class="section">
+    <section id="om" class="section section-alt">
       <div class="wrap about">
         <h2>Om</h2>
         <div>
@@ -154,9 +191,51 @@
 
     <section id="kontakt" class="section">
       <div class="wrap contact">
-        <h2>Har du en idé?</h2>
-        <p class="lead">Send en e-post, så tar vi en uforpliktende prat.</p>
-        <a class="btn btn-primary btn-lg" href="mailto:post@tillerflatendigital.no">post@tillerflatendigital.no</a>
+        <h2>Fortell meg om prosjektet ditt</h2>
+        <p class="lead">Fyll ut skjemaet, så svarer jeg innen et par dager.</p>
+        <form class="form" action="https://formsubmit.co/post@tillerflatendigital.no" method="POST">
+          <input type="hidden" name="_subject" value="Ny henvendelse fra tillerflatendigital.no">
+          <input type="hidden" name="_next" value="https://tillerflatendigital.no/takk.html">
+          <input type="hidden" name="_template" value="table">
+          <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <div class="form-row">
+            <label>Navn
+              <input type="text" name="Navn" autocomplete="name" required>
+            </label>
+            <label>E-post
+              <input type="email" name="email" autocomplete="email" required>
+            </label>
+          </div>
+          <label>Hva trenger du?
+            <select name="Hva trenger du?" required>
+              <option value="">Velg …</option>
+              <option>Enkel nettside</option>
+              <option>Nettside med flere sider</option>
+              <option>Oppdatering av nettside</option>
+              <option>App</option>
+              <option>Usikker, vil gjerne ha råd</option>
+            </select>
+          </label>
+          <label>Fortell kort om prosjektet
+            <textarea name="Fortell kort om prosjektet" rows="5" required></textarea>
+          </label>
+          <div class="form-row">
+            <label><span>Ønsket tidspunkt <span class="opt">(valgfritt)</span></span>
+              <input type="text" name="Ønsket tidspunkt" placeholder="For eksempel «før sommeren»">
+            </label>
+            <label><span>Budsjett <span class="opt">(valgfritt)</span></span>
+              <select name="Budsjett">
+              <option>Vet ikke ennå</option>
+              <option>Under 10 000 kr</option>
+              <option>10 000–25 000 kr</option>
+              <option>25 000–50 000 kr</option>
+              <option>Over 50 000 kr</option>
+              </select>
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg">Send</button>
+        </form>
+        <p class="form-alt">Du kan også sende e-post direkte til <a href="mailto:post@tillerflatendigital.no">post@tillerflatendigital.no</a>.</p>
       </div>
     </section>
   </main>
