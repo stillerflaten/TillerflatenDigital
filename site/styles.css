@@ -276,7 +276,10 @@ a { color: var(--accent); }
 .app-tagline { color: var(--accent); font-weight: 600; margin: 4px 0 16px; }
 .app-info p { max-width: 52ch; }
 .app-meta { color: var(--muted); font-size: 0.95rem; }
-.app .btn { margin-top: 8px; }
+.app .btn { margin-top: 0; }
+.app-links { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 8px; }
+.app-site { font-weight: 600; text-decoration: none; }
+.app-site:hover { text-decoration: underline; }
 .app .btn-primary { background: var(--accent); color: var(--on-accent); }
 .app .btn-primary:hover { background: var(--accent-hover); }
 
