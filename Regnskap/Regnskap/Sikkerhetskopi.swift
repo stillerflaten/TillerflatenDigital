@@ -12,6 +12,9 @@ struct Sikkerhetskopi: Codable {
     var driftsmidler: [DriftsmiddelKopi] = []
     var turer: [KjoreturKopi] = []
     var innstillinger: InnstillingerKopi?
+    // Kom med i en senere versjon, derfor valgfrie (eldre kopier har dem ikke).
+    var kunder: [KundeKopi]?
+    var fakturaer: [FakturaKopi]?
 
     struct VedleggKopi: Codable {
         var uuid: UUID
@@ -70,6 +73,56 @@ struct Sikkerhetskopi: Codable {
         var mvaAarstermin: Bool
         var forskuddsskatt: Bool
         var hjemmekontor: Bool
+        var firmaNavn: String?
+        var firmaEier: String?
+        var firmaAdresse: String?
+        var firmaOrgnr: String?
+        var firmaKontonr: String?
+        var firmaEpost: String?
+        var betalingsfrist: Int?
+        var startnummer: Int?
+    }
+
+    struct KundeKopi: Codable {
+        var uuid: UUID
+        var navn: String
+        var adresse: String
+        var orgnr: String
+        var epost: String
+        var opprettet: Date
+    }
+
+    struct LinjeKopi: Codable {
+        var uuid: UUID
+        var nr: Int
+        var beskrivelse: String
+        var antall: Double
+        var enhetspris: Double
+    }
+
+    struct FakturaKopi: Codable {
+        var uuid: UUID
+        var nummer: Int
+        var statusRaw: String
+        var fakturadato: Date
+        var forfallsdato: Date
+        var leveringsdato: Date
+        var betaltDato: Date?
+        var mvaSats: Double
+        var merknad: String
+        var kundeUUID: UUID?
+        var kundeNavn: String
+        var kundeAdresse: String
+        var kundeOrgnr: String
+        var kundeEpost: String
+        var selgerNavn: String
+        var selgerEier: String
+        var selgerAdresse: String
+        var selgerOrgnr: String
+        var selgerKontonr: String
+        var selgerEpost: String
+        var inntektUUID: UUID?
+        var linjer: [LinjeKopi]
     }
 
     // MARK: Lage kopi
@@ -100,7 +153,31 @@ struct Sikkerhetskopi: Codable {
             mvaRegistrert: d.bool(forKey: Innstilling.mvaRegistrert),
             mvaAarstermin: d.bool(forKey: Innstilling.mvaAarstermin),
             forskuddsskatt: d.object(forKey: Innstilling.forskuddsskatt) as? Bool ?? true,
-            hjemmekontor: d.bool(forKey: Innstilling.hjemmekontor))
+            hjemmekontor: d.bool(forKey: Innstilling.hjemmekontor),
+            firmaNavn: Firma.lagretNavn,
+            firmaEier: d.string(forKey: Firma.eier),
+            firmaAdresse: d.string(forKey: Firma.adresse),
+            firmaOrgnr: d.string(forKey: Firma.orgnr),
+            firmaKontonr: d.string(forKey: Firma.kontonr),
+            firmaEpost: Firma.lagretEpost,
+            betalingsfrist: Firma.lagretBetalingsfrist,
+            startnummer: Firma.lagretStartnummer)
+        kopi.kunder = try context.fetch(FetchDescriptor<Kunde>()).map {
+            KundeKopi(uuid: $0.uuid, navn: $0.navn, adresse: $0.adresse, orgnr: $0.orgnr, epost: $0.epost, opprettet: $0.opprettet)
+        }
+        kopi.fakturaer = try context.fetch(FetchDescriptor<Faktura>()).map { f in
+            FakturaKopi(uuid: f.uuid, nummer: f.nummer, statusRaw: f.statusRaw, fakturadato: f.fakturadato,
+                        forfallsdato: f.forfallsdato, leveringsdato: f.leveringsdato, betaltDato: f.betaltDato,
+                        mvaSats: f.mvaSats, merknad: f.merknad, kundeUUID: f.kundeUUID, kundeNavn: f.kundeNavn,
+                        kundeAdresse: f.kundeAdresse, kundeOrgnr: f.kundeOrgnr, kundeEpost: f.kundeEpost,
+                        selgerNavn: f.selgerNavn, selgerEier: f.selgerEier, selgerAdresse: f.selgerAdresse,
+                        selgerOrgnr: f.selgerOrgnr, selgerKontonr: f.selgerKontonr, selgerEpost: f.selgerEpost,
+                        inntektUUID: f.inntektUUID,
+                        linjer: f.sorterteLinjer.map {
+                            LinjeKopi(uuid: $0.uuid, nr: $0.nr, beskrivelse: $0.beskrivelse,
+                                      antall: $0.antall, enhetspris: $0.enhetspris)
+                        })
+        }
         return kopi
     }
 
@@ -188,8 +265,71 @@ struct Sikkerhetskopi: Codable {
             resultat.lagtTil += 1
         }
 
-        // Innstillinger hentes bare inn hvis lønnen ikke er fylt ut (typisk på en ny telefon).
+        let finnesKunde = Set(try context.fetch(FetchDescriptor<Kunde>()).map(\.uuid))
+        for k in kunder ?? [] {
+            guard !finnesKunde.contains(k.uuid) else { resultat.hoppetOver += 1; continue }
+            let kunde = Kunde(navn: k.navn)
+            kunde.uuid = k.uuid
+            kunde.adresse = k.adresse
+            kunde.orgnr = k.orgnr
+            kunde.epost = k.epost
+            kunde.opprettet = k.opprettet
+            context.insert(kunde)
+            resultat.lagtTil += 1
+        }
+
+        let finnesFaktura = Set(try context.fetch(FetchDescriptor<Faktura>()).map(\.uuid))
+        for k in fakturaer ?? [] {
+            guard !finnesFaktura.contains(k.uuid) else { resultat.hoppetOver += 1; continue }
+            let f = Faktura()
+            f.uuid = k.uuid
+            f.nummer = k.nummer
+            f.statusRaw = k.statusRaw
+            f.fakturadato = k.fakturadato
+            f.forfallsdato = k.forfallsdato
+            f.leveringsdato = k.leveringsdato
+            f.betaltDato = k.betaltDato
+            f.mvaSats = k.mvaSats
+            f.merknad = k.merknad
+            f.kundeUUID = k.kundeUUID
+            f.kundeNavn = k.kundeNavn
+            f.kundeAdresse = k.kundeAdresse
+            f.kundeOrgnr = k.kundeOrgnr
+            f.kundeEpost = k.kundeEpost
+            f.selgerNavn = k.selgerNavn
+            f.selgerEier = k.selgerEier
+            f.selgerAdresse = k.selgerAdresse
+            f.selgerOrgnr = k.selgerOrgnr
+            f.selgerKontonr = k.selgerKontonr
+            f.selgerEpost = k.selgerEpost
+            f.inntektUUID = k.inntektUUID
+            context.insert(f)
+            var nye: [FakturaLinje] = []
+            for lk in k.linjer {
+                let l = FakturaLinje(nr: lk.nr, beskrivelse: lk.beskrivelse, antall: lk.antall, enhetspris: lk.enhetspris)
+                l.uuid = lk.uuid
+                context.insert(l)
+                nye.append(l)
+            }
+            f.linjer = nye
+            resultat.lagtTil += 1
+        }
+
+        // Firmaopplysninger hentes inn hvis de ikke er fylt ut her.
         let d = UserDefaults.standard
+        if let inn = innstillinger, Fakturering.siffer(d.string(forKey: Firma.orgnr) ?? "").isEmpty,
+           let orgnr = inn.firmaOrgnr, !orgnr.isEmpty {
+            d.set(inn.firmaNavn, forKey: Firma.navn)
+            d.set(inn.firmaEier, forKey: Firma.eier)
+            d.set(inn.firmaAdresse, forKey: Firma.adresse)
+            d.set(orgnr, forKey: Firma.orgnr)
+            d.set(inn.firmaKontonr, forKey: Firma.kontonr)
+            d.set(inn.firmaEpost, forKey: Firma.epost)
+            if let frist = inn.betalingsfrist { d.set(frist, forKey: Firma.betalingsfrist) }
+            if let start = inn.startnummer { d.set(start, forKey: Firma.startnummer) }
+        }
+
+        // Innstillinger hentes bare inn hvis lønnen ikke er fylt ut (typisk på en ny telefon).
         if let inn = innstillinger, d.double(forKey: Innstilling.lonn) == 0 {
             d.set(inn.lonn, forKey: Innstilling.lonn)
             d.set(inn.mvaRegistrert, forKey: Innstilling.mvaRegistrert)

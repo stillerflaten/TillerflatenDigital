@@ -6,7 +6,8 @@ enum Lagring {
     /// Må være lik containeren under Signing & Capabilities → iCloud i Xcode.
     static let iCloudContainer = "iCloud.Silje.Regnskap"
 
-    static let schema = Schema([Bilag.self, Vedlegg.self, Inntekt.self, Driftsmiddel.self, Kjoretur.self])
+    static let schema = Schema([Bilag.self, Vedlegg.self, Inntekt.self, Driftsmiddel.self, Kjoretur.self,
+                                     Kunde.self, Faktura.self, FakturaLinje.self])
 
     /// Om appen fikk koblet seg til iCloud ved oppstart.
     private(set) static var brukerICloud = false

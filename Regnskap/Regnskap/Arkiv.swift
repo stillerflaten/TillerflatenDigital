@@ -90,6 +90,7 @@ struct ArkivAarView: View {
     @Query(sort: \Inntekt.dato, order: .reverse) private var alleInntekter: [Inntekt]
     @Query private var driftsmidler: [Driftsmiddel]
     @Query private var turer: [Kjoretur]
+    @Query private var fakturaer: [Faktura]
 
     @AppStorage(Innstilling.lonn) private var lonn: Double = 0
     @AppStorage(Innstilling.mvaRegistrert) private var mvaRegistrert = false
@@ -159,8 +160,12 @@ struct ArkivAarView: View {
 
             Section {
                 Button {
+                    var pdfer: [String: Data] = [:]
+                    for f in fakturaer where f.nummer > 0 && f.fakturadato.aar == aar {
+                        pdfer[FakturaPDF.filnavn(for: f)] = FakturaPDF.data(for: f)
+                    }
                     mappe = ArkivMappe(aar: aar, bilag: bilag, alleBilag: alleBilag, inntekter: alleInntekter,
-                                       mvaRegistrert: mvaRegistrert)
+                                       mvaRegistrert: mvaRegistrert, fakturaPDFer: pdfer)
                     visEksport = true
                 } label: {
                     Label("Lagre året i Filer (regneark og bilder)", systemImage: "folder.badge.plus")
@@ -172,7 +177,7 @@ struct ArkivAarView: View {
             } header: {
                 Text("Eksport")
             } footer: {
-                Text("Lager en mappe med regnearket og alle kvitteringsbildene, navngitt med dato og tittel. Lagre den for eksempel i iCloud Drive, så har du en kopi utenfor appen.")
+                Text("Lager en mappe med regnearket, alle kvitteringsbildene og fakturaene, navngitt med dato og tittel. Lagre den for eksempel i iCloud Drive, så har du en kopi utenfor appen.")
             }
         }
         .temaBakgrunn()
@@ -199,8 +204,12 @@ struct ArkivMappe: FileDocument {
 
     private let filer: [String: Data]
 
-    init(aar: Int, bilag: [Bilag], alleBilag: [Bilag], inntekter: [Inntekt], mvaRegistrert: Bool) {
+    init(aar: Int, bilag: [Bilag], alleBilag: [Bilag], inntekter: [Inntekt], mvaRegistrert: Bool,
+         fakturaPDFer: [String: Data] = [:]) {
         var filer: [String: Data] = [:]
+        for (navn, data) in fakturaPDFer {
+            filer["Fakturaer/" + navn] = data
+        }
         let csv = "\u{FEFF}" + Eksport.csv(aar: aar, bilag: alleBilag, inntekter: inntekter, mvaRegistrert: mvaRegistrert)
         filer["Regnskap \(aar).csv"] = Data(csv.utf8)
 
@@ -233,17 +242,23 @@ struct ArkivMappe: FileDocument {
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
         let rot = FileWrapper(directoryWithFileWrappers: [:])
-        let bilagMappe = FileWrapper(directoryWithFileWrappers: [:])
-        bilagMappe.preferredFilename = "Bilag"
+        var mapper: [String: FileWrapper] = [:]
         for (sti, data) in filer {
-            if sti.hasPrefix("Bilag/") {
-                bilagMappe.addRegularFile(withContents: data, preferredFilename: String(sti.dropFirst(6)))
+            let deler = sti.split(separator: "/", maxSplits: 1).map(String.init)
+            if deler.count == 2 {
+                let mappe = mapper[deler[0]] ?? { () -> FileWrapper in
+                    let ny = FileWrapper(directoryWithFileWrappers: [:])
+                    ny.preferredFilename = deler[0]
+                    return ny
+                }()
+                mappe.addRegularFile(withContents: data, preferredFilename: deler[1])
+                mapper[deler[0]] = mappe
             } else {
                 rot.addRegularFile(withContents: data, preferredFilename: sti)
             }
         }
-        if !(bilagMappe.fileWrappers ?? [:]).isEmpty {
-            rot.addFileWrapper(bilagMappe)
+        for mappe in mapper.values {
+            rot.addFileWrapper(mappe)
         }
         return rot
     }

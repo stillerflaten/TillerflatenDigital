@@ -15,6 +15,14 @@ struct InnstillingerView: View {
                 SikkerhetskopiSeksjon()
 
                 Section {
+                    NavigationLink {
+                        FirmaView()
+                    } label: {
+                        Label("Firmaopplysninger til fakturaer", systemImage: "building.2")
+                    }
+                }
+
+                Section {
                     BelopFelt("Brutto årslønn", belop: $lonn)
                 } header: {
                     Text("Lønn fra fast jobb")

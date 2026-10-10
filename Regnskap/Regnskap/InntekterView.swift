@@ -5,7 +5,10 @@ struct InntekterView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \Inntekt.dato, order: .reverse) private var inntekter: [Inntekt]
 
+    @Query private var fakturaer: [Faktura]
     @State private var visNy = false
+
+    private var ubetalteFakturaer: [Faktura] { fakturaer.filter { $0.status == .sendt } }
 
     private var perAar: [(aar: Int, inntekter: [Inntekt])] {
         Dictionary(grouping: inntekter.filter { Arkiv.erAktivt($0.dato.aar) }, by: \.dato.aar)
@@ -16,6 +19,24 @@ struct InntekterView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    NavigationLink {
+                        FakturaListeView()
+                    } label: {
+                        HStack {
+                            Label("Fakturaer", systemImage: "doc.richtext")
+                            Spacer()
+                            if !ubetalteFakturaer.isEmpty {
+                                Text("\(ubetalteFakturaer.count) ubetalt")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(ubetalteFakturaer.contains(where: \.erForfalt) ? Color.red : Color.secondary)
+                            }
+                        }
+                    }
+                } footer: {
+                    Text("Lag faktura til kunder. Når kunden har betalt, havner beløpet her av seg selv.")
+                }
+
                 if inntekter.isEmpty {
                     ContentUnavailableView {
                         Label("Ingen inntekter ennå", systemImage: "banknote")
