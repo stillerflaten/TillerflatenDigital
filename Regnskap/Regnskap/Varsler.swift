@@ -42,6 +42,40 @@ enum Varsler {
             .removePendingNotificationRequests(withIdentifiers: ["regning-\(bilag.uuid.uuidString)"])
     }
 
+    /// Varsel dagen etter forfall hvis kunden ikke har betalt.
+    static func planleggFaktura(_ faktura: Faktura) {
+        let id = "faktura-\(faktura.uuid.uuidString)"
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id])
+        guard faktura.status == .sendt, !faktura.erKreditnota else { return }
+        let innhold = UNMutableNotificationContent()
+        innhold.title = "Faktura \(faktura.nummer) er ikke betalt"
+        innhold.body = "\(faktura.kundeNavn) skulle betalt \(faktura.total.kr) i går. Har pengene kommet, merker du fakturaen som betalt. Hvis ikke, send en vennlig påminnelse."
+        innhold.sound = .default
+        leggTil(id: id, dato: faktura.forfallsdato, dagerFor: -1, innhold: innhold)
+    }
+
+    static func fjernFaktura(_ faktura: Faktura) {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["faktura-\(faktura.uuid.uuidString)"])
+    }
+
+    /// Påminnelse om å legge inn kvitteringen samme dag som en fast utgift trekkes.
+    static func planleggFastUtgift(_ utgift: FastUtgift) {
+        let id = "fast-\(utgift.uuid.uuidString)"
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id])
+        guard utgift.aktiv else { return }
+        let innhold = UNMutableNotificationContent()
+        innhold.title = "Husk kvitteringen: \(utgift.navn)"
+        innhold.body = "\(utgift.belop.kr) trekkes i dag. Legg inn kvitteringen i Regnskap mens du husker det."
+        innhold.sound = .default
+        leggTil(id: id, dato: utgift.nesteTrekk, dagerFor: 0, innhold: innhold)
+    }
+
+    static func fjernFastUtgift(_ utgift: FastUtgift) {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["fast-\(utgift.uuid.uuidString)"])
+    }
+
     static func fjernAlleFrister() {
         let senter = UNUserNotificationCenter.current()
         senter.getPendingNotificationRequests { ventende in

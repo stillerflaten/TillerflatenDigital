@@ -125,3 +125,14 @@ struct FakturaTests {
         #expect(Fakturering.rund(2.5 * 333.333) == 833.33)
     }
 }
+
+struct FasteUtgifterTests {
+    @Test func nesteTrekkFlyttesEttIntervallFram() {
+        let cal = Frister.kalender
+        let start = cal.date(from: DateComponents(year: 2026, month: 1, day: 31))!
+        let neste = FasteUtgifter.neste(etter: start, intervall: .maanedlig)
+        #expect(cal.dateComponents([.month, .day], from: neste) == DateComponents(month: 2, day: 28))
+        let aar = FasteUtgifter.neste(etter: start, intervall: .aarlig)
+        #expect(cal.component(.year, from: aar) == 2027)
+    }
+}

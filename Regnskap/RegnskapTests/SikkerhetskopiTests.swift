@@ -81,4 +81,53 @@ struct SikkerhetskopiTests {
         #expect(hentet.first?.total == 2_500)
         #expect(try ny.fetch(FetchDescriptor<Kunde>()).first?.navn == "Kafé Fjord")
     }
+
+    private func sendtFaktura(_ db: ModelContext, belop: Double) -> Faktura {
+        let f = Faktura()
+        db.insert(f)
+        let linje = FakturaLinje(nr: 1, beskrivelse: "Nettside", antall: 1, enhetspris: belop)
+        db.insert(linje)
+        f.linjer = [linje]
+        f.nummer = Fakturering.nesteNummer(db)
+        f.status = .sendt
+        return f
+    }
+
+    @Test func helKreditnotaPaaUbetaltFakturaAvslutterDen() throws {
+        let db = try nyDatabase()
+        let f = sendtFaktura(db, belop: 5_000)
+        let k = Fakturering.lagKreditnota(for: f, context: db)
+        #expect(k.sumEksMva == -5_000)
+
+        Fakturering.ferdigstill(k, kunde: nil, mvaRegistrert: false, context: db)
+        #expect(k.nummer == f.nummer + 1)
+        #expect(k.status == .kreditert)
+        #expect(f.status == .kreditert)
+    }
+
+    @Test func delvisKreditnotaGirLavereInntekt() throws {
+        let db = try nyDatabase()
+        let f = sendtFaktura(db, belop: 5_000)
+        let k = Fakturering.lagKreditnota(for: f, context: db)
+        k.sorterteLinjer.first?.enhetspris = 1_000
+        Fakturering.ferdigstill(k, kunde: nil, mvaRegistrert: false, context: db)
+        #expect(f.status == .sendt)
+        #expect(Fakturering.gjenstaar(f, context: db) == 4_000)
+
+        Fakturering.registrerBetalt(f, dato: .now, context: db)
+        #expect(try db.fetch(FetchDescriptor<Inntekt>()).map(\.belop) == [4_000])
+    }
+
+    @Test func kreditnotaPaaBetaltFakturaTrekkesFraNaarDenBetalesTilbake() throws {
+        let db = try nyDatabase()
+        let f = sendtFaktura(db, belop: 3_000)
+        Fakturering.registrerBetalt(f, dato: .now, context: db)
+        let k = Fakturering.lagKreditnota(for: f, context: db)
+        Fakturering.ferdigstill(k, kunde: nil, mvaRegistrert: false, context: db)
+        #expect(k.status == .sendt)
+
+        Fakturering.registrerBetalt(k, dato: .now, context: db)
+        let sum = try db.fetch(FetchDescriptor<Inntekt>()).reduce(0) { $0 + $1.belop }
+        #expect(sum == 0)
+    }
 }

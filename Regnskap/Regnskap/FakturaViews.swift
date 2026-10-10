@@ -13,7 +13,7 @@ struct FakturaListeView: View {
         fakturaer.filter { $0.status == .sendt }.sorted { $0.forfallsdato < $1.forfallsdato }
     }
     private var betalte: [Faktura] {
-        fakturaer.filter { $0.status == .betalt }.sorted { $0.nummer > $1.nummer }
+        fakturaer.filter { $0.status == .betalt || $0.status == .kreditert }.sorted { $0.nummer > $1.nummer }
     }
 
     var body: some View {
@@ -67,13 +67,13 @@ struct FakturaListeView: View {
                     HStack {
                         Text("Venter på betaling")
                         Spacer()
-                        Text(ubetalte.reduce(0) { $0 + $1.total }.kr)
+                        Text(ubetalte.filter { !$0.erKreditnota }.reduce(0) { $0 + Fakturering.gjenstaar($1, context: context) }.kr)
                     }
                 }
             }
 
             if !betalte.isEmpty {
-                Section("Betalt") {
+                Section("Ferdig") {
                     ForEach(betalte) { f in
                         NavigationLink(value: f) { FakturaRad(faktura: f) }
                     }
@@ -156,13 +156,18 @@ struct FakturaRad: View {
                     switch faktura.status {
                     case .utkast:
                         Text("Ikke sendt")
+                    case .sendt where faktura.erKreditnota:
+                        Text("Skal betales tilbake til kunden")
+                            .foregroundStyle(Color.orange)
                     case .sendt:
                         Text(faktura.erForfalt ? "Forfalt \(faktura.forfallsdato.formatted(date: .abbreviated, time: .omitted))"
                                                : "Forfaller \(faktura.forfallsdato.formatted(date: .abbreviated, time: .omitted))")
                             .foregroundStyle(faktura.erForfalt ? Color.red : Color.secondary)
                     case .betalt:
-                        Text("Betalt \((faktura.betaltDato ?? faktura.fakturadato).formatted(date: .abbreviated, time: .omitted))")
+                        Text("\(faktura.erKreditnota ? "Betalt tilbake" : "Betalt") \((faktura.betaltDato ?? faktura.fakturadato).formatted(date: .abbreviated, time: .omitted))")
                             .foregroundStyle(Color.green)
+                    case .kreditert:
+                        Text(faktura.erKreditnota ? "Trukket fra faktura \(faktura.kreditererNummer)" : "Kreditert")
                     }
                 }
                 .font(.caption)
@@ -193,6 +198,9 @@ struct FakturaView: View {
     @State private var bekreftSlettSendt = false
     @State private var betaltDato = Date.now
     @State private var pdf: URL?
+    @State private var nyKreditnota: Faktura?
+    @State private var bekreftKreditnota = false
+    @State private var kalenderMelding: String?
 
     /// Bare den siste fakturaen kan slettes, så nummerserien ikke får hull.
     private var erSisteFaktura: Bool {
@@ -205,8 +213,22 @@ struct FakturaView: View {
         dismiss()
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(500))
-            context.delete(f)
-            try? context.save()
+            Fakturering.slett(f, context: context)
+        }
+    }
+
+    private var hva: String { faktura.erKreditnota ? "kreditnota" : "faktura" }
+
+    private func leggForfallIKalender() async {
+        guard await Kalender.beOmTilgang() else {
+            kalenderMelding = Kalender.Feil.ingenTilgang.errorDescription
+            return
+        }
+        do {
+            try Kalender.leggInn(faktura: faktura)
+            kalenderMelding = "Forfallet er lagt i kalenderen «\(Kalender.navn)». Det fjernes når du merker fakturaen som betalt."
+        } catch {
+            kalenderMelding = "Kunne ikke legge inn i kalenderen: \(error.localizedDescription)"
         }
     }
 
@@ -227,9 +249,15 @@ struct FakturaView: View {
         .temaBakgrunn()
         .onAppear {
             // Et utkast følger mva-innstillingen til det ferdigstilles.
-            if faktura.status == .utkast { faktura.mvaSats = mvaRegistrert ? 0.25 : 0 }
+            if faktura.status == .utkast && !faktura.erKreditnota { faktura.mvaSats = mvaRegistrert ? 0.25 : 0 }
         }
-        .navigationTitle(faktura.nummer > 0 ? "Faktura \(faktura.nummer)" : "Ny faktura")
+        .navigationTitle(faktura.nummer > 0 ? "\(hva.capitalized) \(faktura.nummer)" : "Ny \(hva)")
+        .navigationDestination(item: $nyKreditnota) { FakturaView(faktura: $0) }
+        .alert("Kalender", isPresented: Binding(get: { kalenderMelding != nil }, set: { if !$0 { kalenderMelding = nil } })) {
+            Button("OK") { kalenderMelding = nil }
+        } message: {
+            Text(kalenderMelding ?? "")
+        }
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $visNyKunde) {
             NavigationStack {
@@ -243,14 +271,17 @@ struct FakturaView: View {
                 Form {
                     DatePicker("Betalt", selection: $betaltDato, displayedComponents: .date)
                     Section {
-                        RadVerdi("Føres som inntekt", faktura.sumEksMva.kr, uthevet: true)
+                        RadVerdi(faktura.erKreditnota ? "Trekkes fra inntektene" : "Føres som inntekt",
+                                 Fakturering.inntektVedBetaling(faktura, context: context).kr, uthevet: true)
                     } footer: {
-                        Text(faktura.mvaBelop > 0
+                        Text(faktura.erKreditnota
+                             ? "Beløpet legges inn som en negativ inntekt, så årets inntekter blir riktige."
+                             : faktura.mvaBelop > 0
                              ? "Inntekten føres uten mva. Mva-en på \(faktura.mvaBelop.kr) skal betales videre til staten."
                              : "Beløpet legges inn under Inntekter med datoen pengene kom på konto.")
                     }
                 }
-                .navigationTitle("Registrer betaling")
+                .navigationTitle(faktura.erKreditnota ? "Registrer tilbakebetaling" : "Registrer betaling")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -346,7 +377,9 @@ struct FakturaView: View {
             }
             RadVerdi("Å betale", Fakturering.kroner(faktura.total), uthevet: true)
         } footer: {
-            Text(sats > 0
+            Text(faktura.erKreditnota
+                 ? "Kreditnota for faktura \(faktura.kreditererNummer). Skriv beløpene som positive tall, så trekkes de fra. Fjern linjer som ikke skal krediteres."
+                 : sats > 0
                  ? "Du er mva-registrert, så 25 % mva legges på."
                  : "Du er ikke mva-registrert, så det legges ikke på mva. Fakturaen sier fra om det.")
         }
@@ -384,9 +417,14 @@ struct FakturaView: View {
             .confirmationDialog("Ferdigstille fakturaen?", isPresented: $bekreftFerdigstill, titleVisibility: .visible) {
                 Button("Ferdigstill som nr. \(Fakturering.nesteNummer(context))") {
                     Fakturering.ferdigstill(faktura, kunde: valgtKunde, mvaRegistrert: mvaRegistrert, context: context)
+                    let f = faktura
+                    Task {
+                        _ = await Varsler.beOmTillatelse()
+                        Fakturering.planleggVarsel(for: f)
+                    }
                 }
             } message: {
-                Text("Fakturaen får nummer og kan ikke endres etterpå. Så kan du sende den som PDF.")
+                Text("Den får nummer og kan ikke endres etterpå. Så kan du sende den som PDF.")
             }
         } footer: {
             Text("Fakturanummerene kommer i rekkefølge uten hull, slik loven krever. Et utkast får nummer først når du ferdigstiller det.")
@@ -404,6 +442,9 @@ struct FakturaView: View {
 
     @ViewBuilder
     private var sendtSeksjoner: some View {
+        let kreditnotaer = faktura.erKreditnota ? [] : Fakturering.kreditnotaer(for: faktura, context: context)
+        let gjenstaar = Fakturering.gjenstaar(faktura, context: context)
+
         Section {
             FakturaForhandsvisning(faktura: faktura)
         }
@@ -411,8 +452,10 @@ struct FakturaView: View {
         Section {
             if let pdf {
                 ShareLink(item: pdf,
-                          subject: Text("Faktura \(faktura.nummer) fra \(faktura.selgerNavn)"),
-                          message: Text("Hei!\n\nVedlagt er faktura \(faktura.nummer) på \(Fakturering.kroner(faktura.total)), med forfall \(faktura.forfallsdato.formatted(date: .long, time: .omitted)).\n\nMed vennlig hilsen\n\(faktura.selgerEier)\n\(faktura.selgerNavn)")) {
+                          subject: Text("\(hva.capitalized) \(faktura.nummer) fra \(faktura.selgerNavn)"),
+                          message: Text(faktura.erKreditnota
+                                        ? "Hei!\n\nVedlagt er kreditnota \(faktura.nummer) for faktura \(faktura.kreditererNummer), på \(Fakturering.kroner(-faktura.total)).\n\nMed vennlig hilsen\n\(faktura.selgerEier)\n\(faktura.selgerNavn)"
+                                        : "Hei!\n\nVedlagt er faktura \(faktura.nummer) på \(Fakturering.kroner(faktura.total)), med forfall \(faktura.forfallsdato.formatted(date: .long, time: .omitted)).\n\nMed vennlig hilsen\n\(faktura.selgerEier)\n\(faktura.selgerNavn)")) {
                     Label("Send eller del PDF", systemImage: "paperplane")
                 }
             } else {
@@ -426,43 +469,98 @@ struct FakturaView: View {
         .task(id: faktura.statusRaw) { pdf = FakturaPDF.fil(for: faktura) }
 
         Section {
-            RadVerdi("Status", faktura.erForfalt ? "Forfalt" : faktura.status.navn)
-            RadVerdi("Å betale", Fakturering.kroner(faktura.total), uthevet: true)
+            RadVerdi("Status", faktura.erForfalt ? "Forfalt" : statusTekst)
+            if faktura.erKreditnota {
+                RadVerdi("Kreditert", Fakturering.kroner(-faktura.total), uthevet: true)
+            } else {
+                RadVerdi("Fakturert", Fakturering.kroner(faktura.total), uthevet: kreditnotaer.isEmpty)
+                ForEach(kreditnotaer) { k in
+                    NavigationLink {
+                        FakturaView(faktura: k)
+                    } label: {
+                        RadVerdi("Kreditnota \(k.nummer)", Fakturering.kroner(k.total))
+                    }
+                }
+                if !kreditnotaer.isEmpty && faktura.status == .sendt {
+                    RadVerdi("Gjenstår å betale", Fakturering.kroner(gjenstaar), uthevet: true)
+                }
+            }
             if let betalt = faktura.betaltDato {
-                RadVerdi("Betalt", betalt.formatted(date: .abbreviated, time: .omitted))
+                RadVerdi(faktura.erKreditnota ? "Betalt tilbake" : "Betalt", betalt.formatted(date: .abbreviated, time: .omitted))
             }
             if faktura.status == .sendt {
                 Button {
                     betaltDato = .now
                     visBetalt = true
                 } label: {
-                    Label("Kunden har betalt", systemImage: "checkmark.circle")
+                    Label(faktura.erKreditnota ? "Pengene er betalt tilbake" : "Kunden har betalt", systemImage: "checkmark.circle")
                 }
-            } else {
+                if !faktura.erKreditnota {
+                    Button {
+                        Task { await leggForfallIKalender() }
+                    } label: {
+                        Label("Legg forfallet i kalenderen", systemImage: "calendar.badge.plus")
+                    }
+                }
+            } else if faktura.status == .betalt {
                 Button("Angre betaling") { bekreftAngre = true }
                     .confirmationDialog("Angre betalingen?", isPresented: $bekreftAngre, titleVisibility: .visible) {
                         Button("Angre", role: .destructive) {
                             Fakturering.angreBetalt(faktura, context: context)
                         }
                     } message: {
-                        Text("Fakturaen settes tilbake til ubetalt, og inntekten som ble lagt inn, slettes.")
+                        Text("Den settes tilbake til ubetalt, og inntekten som ble lagt inn, slettes.")
                     }
             }
         } footer: {
-            Text("Når kunden har betalt, legges beløpet automatisk inn under Inntekter. En sendt faktura skal ikke slettes eller endres. Er noe feil, rettes det med en kreditnota.")
+            if faktura.erKreditnota {
+                Text(faktura.status == .kreditert
+                     ? "Fakturaen var ikke betalt, så kreditnotaen er trukket fra det kunden skal betale."
+                     : "Fakturaen var betalt. Når du har betalt pengene tilbake til kunden, trykker du på knappen over, så trekkes beløpet fra inntektene.")
+            } else {
+                Text("Du får et varsel dagen etter forfall hvis fakturaen ikke er merket som betalt. Når kunden har betalt, legges beløpet automatisk inn under Inntekter.")
+            }
         }
 
-        if faktura.status == .sendt && erSisteFaktura {
+        if !faktura.erKreditnota && (faktura.status == .sendt || faktura.status == .betalt) {
             Section {
-                Button("Slett fakturaen", role: .destructive) { bekreftSlettSendt = true }
-                    .confirmationDialog("Slette faktura \(faktura.nummer)?", isPresented: $bekreftSlettSendt, titleVisibility: .visible) {
+                Button {
+                    bekreftKreditnota = true
+                } label: {
+                    Label("Lag kreditnota", systemImage: "arrow.uturn.backward.circle")
+                }
+                .confirmationDialog("Lage kreditnota for faktura \(faktura.nummer)?", isPresented: $bekreftKreditnota, titleVisibility: .visible) {
+                    Button("Lag kreditnota") {
+                        nyKreditnota = Fakturering.lagKreditnota(for: faktura, context: context)
+                    }
+                } message: {
+                    Text("Du får et utkast med de samme linjene. Fjern eller endre linjene hvis bare deler av fakturaen skal krediteres.")
+                }
+            } footer: {
+                Text("En sendt faktura skal ikke slettes eller endres. Er noe feil, lager du en kreditnota og eventuelt en ny faktura.")
+            }
+        }
+
+        if faktura.status != .betalt && erSisteFaktura {
+            Section {
+                Button("Slett \(hva)en", role: .destructive) { bekreftSlettSendt = true }
+                    .confirmationDialog("Slette \(hva) \(faktura.nummer)?", isPresented: $bekreftSlettSendt, titleVisibility: .visible) {
                         Button("Slett, den er ikke sendt til noen", role: .destructive) { slettOgLukk() }
                     } message: {
-                        Text("Gjør dette bare hvis fakturaen aldri er sendt til en kunde, for eksempel når du har testet. Nummer \(faktura.nummer) blir ledig igjen.")
+                        Text("Gjør dette bare hvis den aldri er sendt til en kunde, for eksempel når du har testet. Nummer \(faktura.nummer) blir ledig igjen.")
                     }
             } footer: {
-                Text("Den siste fakturaen kan slettes hvis den ikke er sendt til noen. Da blir nummeret brukt på neste faktura, så serien får ikke hull.")
+                Text("Den siste i nummerserien kan slettes hvis den ikke er sendt til noen. Da blir nummeret brukt på nytt, så serien får ikke hull.")
             }
+        }
+    }
+
+    private var statusTekst: String {
+        switch faktura.status {
+        case .sendt where faktura.erKreditnota: "Skal betales tilbake"
+        case .kreditert where faktura.erKreditnota: "Trukket fra faktura \(faktura.kreditererNummer)"
+        case .betalt where faktura.erKreditnota: "Betalt tilbake"
+        default: faktura.status.navn
         }
     }
 }
@@ -603,6 +701,15 @@ struct KundeSkjemaView: View {
                     .keyboardType(.numberPad)
             } footer: {
                 Text("Endrer du en kunde, gjelder det nye fakturaer. Fakturaer som er sendt, beholder opplysningene de ble sendt med.")
+            }
+
+            Section {
+                TextField("F.eks. kontaktperson, hva dere har avtalt, pris per time", text: $kunde.notat, axis: .vertical)
+                    .lineLimit(3...10)
+            } header: {
+                Text("Notater")
+            } footer: {
+                Text("Bare for deg. Står ikke på fakturaen.")
             }
 
             if !erNy {

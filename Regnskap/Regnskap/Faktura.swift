@@ -12,6 +12,8 @@ final class Kunde {
     var orgnr: String = ""
     var epost: String = ""
     var opprettet: Date = Date.now
+    /// Egne notater om kunden, f.eks. kontaktperson eller hva dere har avtalt. Står ikke på fakturaen.
+    var notat: String = ""
 
     init(navn: String = "") {
         self.navn = navn
@@ -56,6 +58,10 @@ final class Faktura {
     /// Inntekten som ble lagt inn da fakturaen ble betalt.
     var inntektUUID: UUID? = nil
 
+    /// Satt hvis dette er en kreditnota: fakturaen den krediterer.
+    var kreditererUUID: UUID? = nil
+    var kreditererNummer: Int = 0
+
     @Relationship(deleteRule: .cascade, inverse: \FakturaLinje.faktura) var linjer: [FakturaLinje]? = []
 
     init() {}
@@ -69,17 +75,22 @@ final class Faktura {
         (linjer ?? []).sorted { $0.nr < $1.nr }
     }
 
-    var sumEksMva: Double { Fakturering.rund(sorterteLinjer.reduce(0) { $0 + $1.belop }) }
+    var erKreditnota: Bool { kreditererUUID != nil }
+    /// Linjene på en kreditnota skrives inn som positive beløp, men trekkes fra.
+    var fortegn: Double { erKreditnota ? -1 : 1 }
+
+    var sumEksMva: Double { Fakturering.rund(fortegn * sorterteLinjer.reduce(0) { $0 + $1.belop }) }
     var mvaBelop: Double { Fakturering.rund(sumEksMva * mvaSats) }
     var total: Double { sumEksMva + mvaBelop }
 
     var erForfalt: Bool {
-        status == .sendt && Frister.kalender.startOfDay(for: forfallsdato) < Frister.kalender.startOfDay(for: .now)
+        status == .sendt && !erKreditnota && Frister.kalender.startOfDay(for: forfallsdato) < Frister.kalender.startOfDay(for: .now)
     }
 
     var tittel: String {
         let kunde = kundeNavn.isEmpty ? "Uten kunde" : kundeNavn
-        return nummer > 0 ? "Faktura \(nummer) – \(kunde)" : "Utkast – \(kunde)"
+        let hva = erKreditnota ? "Kreditnota" : "Faktura"
+        return nummer > 0 ? "\(hva) \(nummer) – \(kunde)" : "Utkast \(hva.lowercased()) – \(kunde)"
     }
 }
 
@@ -104,13 +115,15 @@ final class FakturaLinje {
 }
 
 enum Fakturastatus: String, CaseIterable {
-    case utkast, sendt, betalt
+    /// `kreditert`: fakturaen er kreditert i sin helhet, eller kreditnotaen er trukket fra en ubetalt faktura.
+    case utkast, sendt, betalt, kreditert
 
     var navn: String {
         switch self {
         case .utkast: "Utkast"
         case .sendt: "Sendt"
         case .betalt: "Betalt"
+        case .kreditert: "Kreditert"
         }
     }
 }
@@ -165,7 +178,7 @@ enum Fakturering {
         var liste = Firma.mangler.map { "Firmaopplysninger: \($0)" }
         if faktura.kundeNavn.trimmet.isEmpty { liste.append("Velg en kunde") }
         else if faktura.kundeAdresse.trimmet.isEmpty { liste.append("Kunden mangler adresse") }
-        if faktura.sorterteLinjer.isEmpty || faktura.sumEksMva <= 0 { liste.append("Legg inn minst én linje med beløp") }
+        if faktura.sorterteLinjer.isEmpty || faktura.sumEksMva == 0 { liste.append("Legg inn minst én linje med beløp") }
         if faktura.sorterteLinjer.contains(where: { $0.beskrivelse.trimmet.isEmpty }) {
             liste.append("Alle linjer må ha en beskrivelse")
         }
@@ -186,10 +199,113 @@ enum Fakturering {
         faktura.selgerOrgnr = d.string(forKey: Firma.orgnr) ?? ""
         faktura.selgerKontonr = d.string(forKey: Firma.kontonr) ?? ""
         faktura.selgerEpost = Firma.lagretEpost
-        faktura.mvaSats = mvaRegistrert ? 0.25 : 0
+        if !faktura.erKreditnota {
+            faktura.mvaSats = mvaRegistrert ? 0.25 : 0
+        }
         faktura.nummer = nesteNummer(context)
         faktura.status = .sendt
         try? context.save()
+
+        if let original = opprinnelig(for: faktura, context: context) {
+            if original.status != .betalt {
+                // Ubetalt faktura: kreditnotaen trekkes fra det kunden skal betale.
+                faktura.status = .kreditert
+                if gjenstaar(original, context: context) <= 0.005 {
+                    original.status = .kreditert
+                    fjernVarsel(for: original)
+                }
+            }
+            // Betalt faktura: kreditnotaen står som «sendt» til pengene er betalt tilbake.
+        }
+        try? context.save()
+        planleggVarsel(for: faktura)
+    }
+
+    // MARK: Kreditnota
+
+    /// Lager et utkast til kreditnota for hele fakturaen. Linjene kan endres før den ferdigstilles.
+    @MainActor
+    static func lagKreditnota(for original: Faktura, context: ModelContext) -> Faktura {
+        let k = Faktura()
+        k.kreditererUUID = original.uuid
+        k.kreditererNummer = original.nummer
+        k.kundeUUID = original.kundeUUID
+        k.kundeNavn = original.kundeNavn
+        k.kundeAdresse = original.kundeAdresse
+        k.kundeOrgnr = original.kundeOrgnr
+        k.kundeEpost = original.kundeEpost
+        k.mvaSats = original.mvaSats
+        k.leveringsdato = original.leveringsdato
+        k.forfallsdato = k.fakturadato
+        k.merknad = "Kreditnota for faktura \(original.nummer)."
+        context.insert(k)
+        var linjer: [FakturaLinje] = []
+        for l in original.sorterteLinjer {
+            let ny = FakturaLinje(nr: l.nr, beskrivelse: l.beskrivelse, antall: l.antall, enhetspris: l.enhetspris)
+            context.insert(ny)
+            linjer.append(ny)
+        }
+        k.linjer = linjer
+        return k
+    }
+
+    @MainActor
+    static func opprinnelig(for kreditnota: Faktura, context: ModelContext) -> Faktura? {
+        guard let id = kreditnota.kreditererUUID else { return nil }
+        let sok = FetchDescriptor<Faktura>(predicate: #Predicate<Faktura> { $0.uuid == id })
+        return try? context.fetch(sok).first
+    }
+
+    /// Ferdige kreditnotaer for fakturaen.
+    @MainActor
+    static func kreditnotaer(for faktura: Faktura, context: ModelContext) -> [Faktura] {
+        let id: UUID? = faktura.uuid
+        let sok = FetchDescriptor<Faktura>(predicate: #Predicate<Faktura> { $0.kreditererUUID == id })
+        return ((try? context.fetch(sok)) ?? []).filter { $0.nummer > 0 }
+    }
+
+    /// Inntekten (uten mva) som føres når fakturaen betales. Kreditnotaer som er trukket fra, reduserer den.
+    @MainActor
+    static func inntektVedBetaling(_ faktura: Faktura, context: ModelContext) -> Double {
+        let trukketFra = kreditnotaer(for: faktura, context: context).filter { $0.status == .kreditert }
+        return rund(faktura.sumEksMva + trukketFra.reduce(0) { $0 + $1.sumEksMva })
+    }
+
+    /// Det kunden fortsatt skal betale, etter kreditnotaer som er trukket fra.
+    @MainActor
+    static func gjenstaar(_ faktura: Faktura, context: ModelContext) -> Double {
+        let trukketFra = kreditnotaer(for: faktura, context: context).filter { $0.status == .kreditert }
+        return rund(faktura.total + trukketFra.reduce(0) { $0 + $1.total })
+    }
+
+    /// Sletter en ferdigstilt faktura (bare den siste i serien, og bare når den ikke er sendt til noen).
+    @MainActor
+    static func slett(_ faktura: Faktura, context: ModelContext) {
+        if faktura.status == .kreditert,
+           let original = opprinnelig(for: faktura, context: context),
+           original.status == .kreditert {
+            original.status = .sendt
+            planleggVarsel(for: original)
+        }
+        fjernVarsel(for: faktura)
+        context.delete(faktura)
+        try? context.save()
+    }
+
+    // MARK: Varsel om forfall
+
+    @MainActor
+    static func planleggVarsel(for faktura: Faktura) {
+        Varsler.planleggFaktura(faktura)
+        if Kalender.harTilgang, faktura.status == .sendt, !faktura.erKreditnota {
+            try? Kalender.leggInn(faktura: faktura)
+        }
+    }
+
+    @MainActor
+    static func fjernVarsel(for faktura: Faktura) {
+        Varsler.fjernFaktura(faktura)
+        Kalender.fjern(faktura: faktura)
     }
 
     static func kopier(_ kunde: Kunde, til faktura: Faktura) {
@@ -204,13 +320,18 @@ enum Fakturering {
     @MainActor
     static func registrerBetalt(_ faktura: Faktura, dato: Date, context: ModelContext) {
         guard faktura.status == .sendt else { return }
-        let inntekt = Inntekt(dato: dato, belop: faktura.sumEksMva, kilde: "Faktura")
-        inntekt.notat = "Faktura \(faktura.nummer) – \(faktura.kundeNavn)"
-            + (faktura.mvaBelop > 0 ? ". Kunden betalte \(faktura.total.kr) inkl. \(faktura.mvaBelop.kr) i mva." : "")
+        let eksMva = inntektVedBetaling(faktura, context: context)
+        let betalt = gjenstaar(faktura, context: context)
+        let inntekt = Inntekt(dato: dato, belop: eksMva, kilde: "Faktura")
+        inntekt.notat = faktura.erKreditnota
+            ? "Kreditnota \(faktura.nummer) (faktura \(faktura.kreditererNummer)) – \(faktura.kundeNavn), betalt tilbake"
+            : "Faktura \(faktura.nummer) – \(faktura.kundeNavn)"
+                + (betalt != faktura.total ? ". Kunden betalte \(betalt.kr) etter kreditnota." : "")
         context.insert(inntekt)
         faktura.inntektUUID = inntekt.uuid
         faktura.betaltDato = dato
         faktura.status = .betalt
+        fjernVarsel(for: faktura)
         try? context.save()
     }
 
@@ -228,6 +349,7 @@ enum Fakturering {
         faktura.betaltDato = nil
         faktura.status = .sendt
         try? context.save()
+        planleggVarsel(for: faktura)
     }
 
     static func rund(_ verdi: Double) -> Double {

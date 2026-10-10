@@ -111,6 +111,17 @@ enum Kalender {
                     notat: "Beløp: \(regning.belop.kr)\n\(regning.notat)", dato: forfall, dagerFor: 1)
     }
 
+    static func leggInn(faktura: Faktura) throws {
+        try leggInn(id: "faktura-\(faktura.uuid.uuidString)",
+                    tittel: "Forfall: faktura \(faktura.nummer) – \(faktura.kundeNavn)",
+                    notat: "\(faktura.total.kr). Sjekk om pengene har kommet, og merk fakturaen som betalt i appen.",
+                    dato: faktura.forfallsdato, dagerFor: 0)
+    }
+
+    static func fjern(faktura: Faktura) {
+        try? fjern(id: "faktura-\(faktura.uuid.uuidString)", rundt: faktura.forfallsdato)
+    }
+
     static func fjern(regning: Bilag) {
         guard let forfall = regning.forfallsdato else { return }
         try? fjern(id: "regning-\(regning.uuid.uuidString)", rundt: forfall)
