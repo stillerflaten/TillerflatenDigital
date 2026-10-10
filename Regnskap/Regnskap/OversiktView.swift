@@ -6,6 +6,7 @@ struct OversiktView: View {
     @Query(sort: \Inntekt.dato, order: .reverse) private var inntekter: [Inntekt]
     @Query private var driftsmidler: [Driftsmiddel]
     @Query private var turer: [Kjoretur]
+    @Query(sort: \Faktura.forfallsdato) private var fakturaer: [Faktura]
 
     @AppStorage(Innstilling.lonn) private var lonn: Double = 0
     @AppStorage(Innstilling.mvaRegistrert) private var mvaRegistrert = false
@@ -106,6 +107,19 @@ struct OversiktView: View {
                         MvaGrenseView(inntekter: inntekter)
                     } header: {
                         Text("Mva-grensen")
+                    }
+                }
+
+                let utestaende = fakturaer.filter { $0.status == .sendt }
+                if !utestaende.isEmpty {
+                    Section("Fakturaer som venter på betaling") {
+                        ForEach(utestaende) { f in
+                            NavigationLink {
+                                FakturaView(faktura: f)
+                            } label: {
+                                FakturaRad(faktura: f)
+                            }
+                        }
                     }
                 }
 

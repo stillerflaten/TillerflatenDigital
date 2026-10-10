@@ -104,3 +104,24 @@ struct ArkivTests {
         #expect(Arkiv.filnavn(dato: dato(2025, 3, 14), tittel: " ") == "2025-03-14")
     }
 }
+
+struct FakturaTests {
+    @Test func nummerFortsetterUtenHull() {
+        #expect(Fakturering.nesteNummer(brukte: [], startnummer: 1) == 1)
+        #expect(Fakturering.nesteNummer(brukte: [1, 2, 3], startnummer: 1) == 4)
+        // Har du brukt et annet program før, starter appen der du slapp.
+        #expect(Fakturering.nesteNummer(brukte: [], startnummer: 15) == 15)
+        #expect(Fakturering.nesteNummer(brukte: [15, 16], startnummer: 15) == 17)
+    }
+
+    @Test func kontonrOgOrgnrFormateres() {
+        #expect(Fakturering.kontonr("12345678901") == "1234 56 78901")
+        #expect(Fakturering.kontonr("1234.56.78901") == "1234 56 78901")
+        #expect(Fakturering.orgnr("123456789") == "123 456 789")
+        #expect(Fakturering.orgnr("12345") == "12345")
+    }
+
+    @Test func linjebelopRundesTilOre() {
+        #expect(Fakturering.rund(2.5 * 333.333) == 833.33)
+    }
+}
