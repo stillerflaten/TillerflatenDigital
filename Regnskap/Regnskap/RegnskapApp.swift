@@ -38,5 +38,7 @@ struct ContentView: View {
                 FristerView()
             }
         }
+        // Faner nederst på iPhone, sidemeny på iPad og Mac.
+        .tabViewStyle(.sidebarAdaptable)
     }
 }
