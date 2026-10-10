@@ -110,6 +110,12 @@ a { color: var(--accent); }
 
 .nav a:hover { color: var(--hero-text); }
 
+.nav .nav-lang {
+  font-size: .85rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+
 .nav .nav-cta {
   color: var(--hero-text);
   border: 1px solid color-mix(in srgb, var(--hero-text) 35%, transparent);
@@ -295,7 +301,8 @@ a { color: var(--accent); }
 
 @media (max-width: 640px) {
   body { font-size: 16px; }
-  .nav a:not(.nav-cta) { display: none; }
+  .nav { gap: 16px; }
+  .nav a:not(.nav-cta):not(.nav-lang) { display: none; }
   .brand { font-size: 1rem; }
   .hero { padding: 48px 0 120px; }
   .section { padding: 56px 0; }
