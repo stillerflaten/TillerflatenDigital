@@ -16,6 +16,7 @@ struct Sikkerhetskopi: Codable {
     var kunder: [KundeKopi]?
     var fakturaer: [FakturaKopi]?
     var fasteUtgifter: [FastUtgiftKopi]?
+    var prosjekter: [ProsjektKopi]? = nil
 
     struct VedleggKopi: Codable {
         var uuid: UUID
@@ -108,6 +109,28 @@ struct Sikkerhetskopi: Codable {
         var aktiv: Bool
         var notat: String
         var fraUtlandet: Bool? = nil
+    }
+
+    struct TimeforingKopi: Codable {
+        var uuid: UUID
+        var dato: Date
+        var timer: Double
+        var notat: String
+        var fakturaUUID: UUID?
+    }
+
+    struct ProsjektKopi: Codable {
+        var uuid: UUID
+        var navn: String
+        var kundeUUID: UUID?
+        var kundeNavn: String
+        var erFastpris: Bool
+        var timepris: Double
+        var fastpris: Double
+        var ferdig: Bool
+        var opprettet: Date
+        var notat: String
+        var foringer: [TimeforingKopi]
     }
 
     struct LinjeKopi: Codable {
@@ -213,6 +236,15 @@ struct Sikkerhetskopi: Codable {
                         kreditererUUID: f.kreditererUUID, kreditererNummer: f.kreditererNummer,
                         antallPurringer: f.antallPurringer, purreDato: f.purreDato, purreFrist: f.purreFrist,
                         medTakkebrev: f.medTakkebrev, takketekst: f.takketekst)
+        }
+        kopi.prosjekter = try context.fetch(FetchDescriptor<Prosjekt>()).map { p in
+            ProsjektKopi(uuid: p.uuid, navn: p.navn, kundeUUID: p.kundeUUID, kundeNavn: p.kundeNavn,
+                         erFastpris: p.erFastpris, timepris: p.timepris, fastpris: p.fastpris, ferdig: p.ferdig,
+                         opprettet: p.opprettet, notat: p.notat,
+                         foringer: (p.foringer ?? []).map {
+                             TimeforingKopi(uuid: $0.uuid, dato: $0.dato, timer: $0.timer, notat: $0.notat,
+                                            fakturaUUID: $0.fakturaUUID)
+                         })
         }
         return kopi
     }
@@ -375,6 +407,32 @@ struct Sikkerhetskopi: Codable {
             u.fraUtlandet = k.fraUtlandet ?? false
             context.insert(u)
             Varsler.planleggFastUtgift(u)
+            resultat.lagtTil += 1
+        }
+
+        let finnesProsjekt = Set(try context.fetch(FetchDescriptor<Prosjekt>()).map(\.uuid))
+        for k in prosjekter ?? [] {
+            guard !finnesProsjekt.contains(k.uuid) else { resultat.hoppetOver += 1; continue }
+            let p = Prosjekt(navn: k.navn)
+            p.uuid = k.uuid
+            p.kundeUUID = k.kundeUUID
+            p.kundeNavn = k.kundeNavn
+            p.erFastpris = k.erFastpris
+            p.timepris = k.timepris
+            p.fastpris = k.fastpris
+            p.ferdig = k.ferdig
+            p.opprettet = k.opprettet
+            p.notat = k.notat
+            context.insert(p)
+            var nye: [Timeforing] = []
+            for tk in k.foringer {
+                let t = Timeforing(dato: tk.dato, timer: tk.timer, notat: tk.notat)
+                t.uuid = tk.uuid
+                t.fakturaUUID = tk.fakturaUUID
+                context.insert(t)
+                nye.append(t)
+            }
+            p.foringer = nye
             resultat.lagtTil += 1
         }
 

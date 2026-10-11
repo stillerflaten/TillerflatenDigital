@@ -33,8 +33,13 @@ struct InntekterView: View {
                             }
                         }
                     }
+                    NavigationLink {
+                        ProsjektListeView()
+                    } label: {
+                        Label("Timer og prosjekter", systemImage: "clock")
+                    }
                 } footer: {
-                    Text("Lag faktura til kunder. Når kunden har betalt, havner beløpet her av seg selv.")
+                    Text("Lag faktura til kunder, og før timene du bruker på hvert oppdrag. Når kunden har betalt, havner beløpet her av seg selv.")
                 }
 
                 if inntekter.isEmpty {

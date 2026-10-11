@@ -133,10 +133,7 @@ struct FakturaListeView: View {
     }
 
     private func nyFaktura() {
-        let f = Faktura()
-        f.forfallsdato = Calendar.current.date(byAdding: .day, value: Firma.lagretBetalingsfrist, to: f.fakturadato) ?? f.fakturadato
-        f.mvaSats = UserDefaults.standard.bool(forKey: Innstilling.mvaRegistrert) ? 0.25 : 0
-        context.insert(f)
+        let f = Fakturering.nyttUtkast(context: context)
         let linje = FakturaLinje(nr: 1)
         context.insert(linje)
         f.linjer = [linje]

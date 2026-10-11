@@ -211,6 +211,16 @@ enum Fakturering {
         return nesteNummer(brukte: alle.map(\.nummer).filter { $0 > 0 }, startnummer: Firma.lagretStartnummer)
     }
 
+    /// Et tomt fakturautkast med dagens dato, betalingsfrist og mva etter innstillingene.
+    @MainActor
+    static func nyttUtkast(context: ModelContext) -> Faktura {
+        let f = Faktura()
+        f.forfallsdato = Calendar.current.date(byAdding: .day, value: Firma.lagretBetalingsfrist, to: f.fakturadato) ?? f.fakturadato
+        f.mvaSats = UserDefaults.standard.bool(forKey: Innstilling.mvaRegistrert) ? 0.25 : 0
+        context.insert(f)
+        return f
+    }
+
     /// Hva som mangler på selve fakturaen før den kan ferdigstilles.
     static func mangler(i faktura: Faktura) -> [String] {
         var liste = Firma.mangler.map { "Firmaopplysninger: \($0)" }

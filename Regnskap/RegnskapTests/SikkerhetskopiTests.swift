@@ -231,4 +231,67 @@ struct SikkerhetskopiTests {
         #expect(!k.harTakkebrev)
         #expect(k.takketekst.isEmpty)
     }
+
+    // MARK: Timebank
+
+    private func prosjektMedTimer(_ db: ModelContext, timepris: Double, timer: [Double]) -> Prosjekt {
+        let p = Prosjekt(navn: "Nettside")
+        p.timepris = timepris
+        db.insert(p)
+        for (i, t) in timer.enumerated() {
+            let f = Timeforing(dato: Date(timeIntervalSince1970: Double(i) * 86_400), timer: t, notat: i == 0 ? "Forside" : "")
+            db.insert(f)
+            f.prosjekt = p
+        }
+        try? db.save()
+        return p
+    }
+
+    @Test func fakturaAvTimerFaarEnLinjePerDagOgMerkerTimene() throws {
+        let db = try nyDatabase()
+        let kunde = Kunde(navn: "Kafé Fjord")
+        db.insert(kunde)
+        let p = prosjektMedTimer(db, timepris: 750, timer: [2, 1.5])
+        let f = Timebank.lagFaktura(for: p, foringer: p.foringer ?? [], kunde: kunde, context: db)
+
+        #expect(f.kundeNavn == "Kafé Fjord")
+        #expect(f.sorterteLinjer.map(\.antall) == [2, 1.5])
+        #expect(f.sorterteLinjer.first?.beskrivelse.hasSuffix(": Forside") == true)
+        #expect(f.sorterteLinjer.last?.beskrivelse.hasSuffix(": Nettside") == true)
+        #expect(f.sumEksMva == 2_625)
+        let ider = Set(try db.fetch(FetchDescriptor<Faktura>()).map(\.uuid))
+        #expect(Timebank.ufakturerte(p.foringer ?? [], fakturaer: ider).isEmpty)
+    }
+
+    @Test func timeneBlirUfakturertNaarUtkastetSlettes() throws {
+        let db = try nyDatabase()
+        let p = prosjektMedTimer(db, timepris: 500, timer: [3])
+        let f = Timebank.lagFaktura(for: p, foringer: p.foringer ?? [], kunde: nil, context: db)
+        db.delete(f)
+        try db.save()
+        let ider = Set(try db.fetch(FetchDescriptor<Faktura>()).map(\.uuid))
+        #expect(Timebank.sum(Timebank.ufakturerte(p.foringer ?? [], fakturaer: ider)) == 3)
+    }
+
+    @Test func effektivTimeprisPaaFastpris() {
+        #expect(Timebank.effektivTimepris(pris: 7_500, timer: 50) == 150)
+        #expect(Timebank.effektivTimepris(pris: 7_500, timer: 0) == nil)
+    }
+
+    @Test func prosjekterKommerMedISikkerhetskopien() throws {
+        let gammel = try nyDatabase()
+        let p = prosjektMedTimer(gammel, timepris: 600, timer: [1, 2])
+        p.erFastpris = true
+        p.fastpris = 9_000
+        try gammel.save()
+
+        let data = try Sikkerhetskopi.lag(fra: gammel).somData()
+        let ny = try nyDatabase()
+        _ = try Sikkerhetskopi.les(data).gjenopprett(til: ny)
+
+        let hentet = try ny.fetch(FetchDescriptor<Prosjekt>())
+        #expect(hentet.count == 1)
+        #expect(hentet.first?.fastpris == 9_000)
+        #expect(hentet.first?.sumTimer == 3)
+    }
 }
