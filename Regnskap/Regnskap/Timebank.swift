@@ -99,6 +99,15 @@ enum Timebank {
         return f
     }
 
+    /// Teksten i bekreftelsen før et prosjekt slettes.
+    static func sletteMelding(for prosjekt: Prosjekt) -> String {
+        let antall = prosjekt.foringer?.count ?? 0
+        let omTimene = antall == 0
+            ? "Prosjektet har ingen timer."
+            : "\(antall == 1 ? "Én timeføring" : "Alle \(antall) timeføringene") (\(timer(prosjekt.sumTimer))) slettes også."
+        return omTimene + " Fakturaer og utkast du har laget av timene, blir ikke berørt."
+    }
+
     static func timer(_ verdi: Double) -> String {
         "\(Fakturering.antall(verdi)) t"
     }
@@ -110,7 +119,9 @@ struct ProsjektListeView: View {
     @Query(sort: \Prosjekt.opprettet, order: .reverse) private var prosjekter: [Prosjekt]
     @Query private var fakturaer: [Faktura]
     @Query private var alleForinger: [Timeforing]
+    @Environment(\.modelContext) private var context
     @State private var visNy = false
+    @State private var slettes: Prosjekt?
 
     private var aktive: [Prosjekt] { prosjekter.filter { !$0.ferdig } }
     private var ferdige: [Prosjekt] { prosjekter.filter(\.ferdig) }
@@ -142,6 +153,10 @@ struct ProsjektListeView: View {
                 Section("Pågår") {
                     ForEach(aktive) { p in
                         NavigationLink { ProsjektView(prosjekt: p) } label: { ProsjektRad(prosjekt: p, fakturaIDer: fakturaIDer) }
+                            .swipeActions {
+                                Button { slettes = p } label: { Label("Slett", systemImage: "trash") }
+                                    .tint(.red)
+                            }
                     }
                 }
             }
@@ -149,12 +164,27 @@ struct ProsjektListeView: View {
                 Section("Ferdige") {
                     ForEach(ferdige) { p in
                         NavigationLink { ProsjektView(prosjekt: p) } label: { ProsjektRad(prosjekt: p, fakturaIDer: fakturaIDer) }
+                            .swipeActions {
+                                Button { slettes = p } label: { Label("Slett", systemImage: "trash") }
+                                    .tint(.red)
+                            }
                     }
                 }
             }
         }
         .temaBakgrunn()
         .navigationTitle("Timer og prosjekter")
+        .confirmationDialog("Slette \(slettes?.navn ?? "prosjektet")?",
+                            isPresented: Binding(get: { slettes != nil }, set: { if !$0 { slettes = nil } }),
+                            titleVisibility: .visible, presenting: slettes) { p in
+            Button("Slett prosjektet", role: .destructive) {
+                context.delete(p)
+                try? context.save()
+                slettes = nil
+            }
+        } message: { p in
+            Text(Timebank.sletteMelding(for: p))
+        }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -220,6 +250,7 @@ struct ProsjektView: View {
     @State private var visNyeTimer = false
     @State private var endre: Timeforing?
     @State private var nyFaktura: Faktura?
+    @State private var bekreftSlett = false
 
     var body: some View {
         let fakturaIDer = Set(fakturaer.map(\.uuid))
@@ -300,10 +331,28 @@ struct ProsjektView: View {
 
             Section {
                 NavigationLink {
-                    ProsjektSkjemaView(prosjekt: prosjekt, slettet: { dismiss() })
+                    ProsjektSkjemaView(prosjekt: prosjekt)
                 } label: {
                     Label("Endre prosjektet", systemImage: "pencil")
                 }
+            }
+
+            Section {
+                Button("Slett prosjektet", role: .destructive) { bekreftSlett = true }
+                    .confirmationDialog("Slette \(prosjekt.navn)?", isPresented: $bekreftSlett, titleVisibility: .visible) {
+                        Button("Slett prosjektet", role: .destructive) {
+                            // Gå tilbake først, og slett når skjermen er borte.
+                            let p = prosjekt
+                            dismiss()
+                            Task { @MainActor in
+                                try? await Task.sleep(for: .milliseconds(500))
+                                context.delete(p)
+                                try? context.save()
+                            }
+                        }
+                    } message: {
+                        Text(Timebank.sletteMelding(for: prosjekt))
+                    }
             }
         }
         .temaBakgrunn()
@@ -359,15 +408,11 @@ struct ProsjektSkjemaView: View {
 
     @State private var prosjekt: Prosjekt
     @State private var visNyKunde = false
-    @State private var bekreftSlett = false
     private let erNy: Bool
-    /// Lukker prosjektsiden bak skjemaet når prosjektet slettes.
-    private let slettet: (() -> Void)?
 
-    init(prosjekt: Prosjekt?, slettet: (() -> Void)? = nil) {
+    init(prosjekt: Prosjekt?) {
         _prosjekt = State(initialValue: prosjekt ?? Prosjekt())
         erNy = prosjekt == nil
-        self.slettet = slettet
     }
 
     var body: some View {
@@ -422,22 +467,6 @@ struct ProsjektSkjemaView: View {
                     Toggle("Prosjektet er ferdig", isOn: $prosjekt.ferdig)
                 } footer: {
                     Text("Ferdige prosjekter flyttes ned i listen. Timene blir liggende.")
-                }
-                Section {
-                    Button("Slett prosjektet", role: .destructive) { bekreftSlett = true }
-                        .confirmationDialog("Slette \(prosjekt.navn)?", isPresented: $bekreftSlett, titleVisibility: .visible) {
-                            Button("Slett", role: .destructive) {
-                                let p = prosjekt
-                                if let slettet { slettet() } else { dismiss() }
-                                Task { @MainActor in
-                                    try? await Task.sleep(for: .milliseconds(500))
-                                    context.delete(p)
-                                    try? context.save()
-                                }
-                            }
-                        } message: {
-                            Text("Alle timene i prosjektet slettes. Fakturaer du har laget, blir ikke berørt.")
-                        }
                 }
             }
         }

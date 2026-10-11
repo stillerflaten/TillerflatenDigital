@@ -294,4 +294,16 @@ struct SikkerhetskopiTests {
         #expect(hentet.first?.fastpris == 9_000)
         #expect(hentet.first?.sumTimer == 3)
     }
+
+    @Test func sletteProsjektFjernerTimeneMenIkkeFakturaen() throws {
+        let db = try nyDatabase()
+        let p = prosjektMedTimer(db, timepris: 800, timer: [2, 3])
+        let f = Timebank.lagFaktura(for: p, foringer: p.foringer ?? [], kunde: nil, context: db)
+        db.delete(p)
+        try db.save()
+        #expect(try db.fetch(FetchDescriptor<Prosjekt>()).isEmpty)
+        #expect(try db.fetch(FetchDescriptor<Timeforing>()).isEmpty)
+        #expect(try db.fetch(FetchDescriptor<Faktura>()).first?.sumEksMva == 4_000)
+        #expect(f.sorterteLinjer.count == 2)
+    }
 }
