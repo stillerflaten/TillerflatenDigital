@@ -111,9 +111,18 @@ a { color: var(--accent); }
 .nav a:hover { color: var(--hero-text); }
 
 .nav .nav-lang {
-  font-size: .85rem;
-  font-weight: 600;
-  letter-spacing: .04em;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+}
+.nav .globe {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .nav .nav-cta {
