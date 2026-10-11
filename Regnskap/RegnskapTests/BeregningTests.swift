@@ -136,3 +136,38 @@ struct FasteUtgifterTests {
         #expect(cal.component(.year, from: aar) == 2027)
     }
 }
+
+struct AutoKopiTests {
+    @Test func filnavnHarDato() {
+        let d = Frister.kalender.date(from: DateComponents(year: 2026, month: 3, day: 7, hour: 12))!
+        #expect(AutoKopi.filnavn(for: d) == "Regnskap 2026-03-07.json")
+    }
+
+    @Test func beholderDeNyesteOgEnPerMaaned() {
+        // Daglige kopier fra 1. januar til 30. september.
+        var filer: [String] = []
+        for m in 1...9 {
+            for dag in 1...28 {
+                filer.append(String(format: "Regnskap 2026-%02d-%02d.json", m, dag))
+            }
+        }
+        filer.append("Notater.txt")
+        filer.append("Regnskap sikkerhetskopi 2026-01-01.json")
+
+        let slett = Set(AutoKopi.filerSomSkalSlettes(filer))
+        let behold = Set(filer).subtracting(slett)
+
+        #expect(!slett.contains("Notater.txt"))
+        #expect(!slett.contains("Regnskap sikkerhetskopi 2026-01-01.json"))
+        // De fem nyeste, pluss den nyeste fra april–august (september er dekket av de fem).
+        for dag in 24...28 { #expect(behold.contains(String(format: "Regnskap 2026-09-%02d.json", dag))) }
+        for m in 4...8 { #expect(behold.contains(String(format: "Regnskap 2026-%02d-28.json", m))) }
+        #expect(behold.count == 5 + 5 + 2)
+        #expect(slett.contains("Regnskap 2026-03-28.json"))
+    }
+
+    @Test func faaFilerSlettesIkke() {
+        let filer = ["Regnskap 2026-10-01.json", "Regnskap 2026-10-02.json"]
+        #expect(AutoKopi.filerSomSkalSlettes(filer).isEmpty)
+    }
+}

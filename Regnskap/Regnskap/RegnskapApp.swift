@@ -4,6 +4,7 @@ import SwiftData
 @main
 struct RegnskapApp: App {
     let container = Lagring.lagContainer()
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         Tema.konfigurer()
@@ -14,6 +15,11 @@ struct RegnskapApp: App {
             ContentView()
                 .environment(\.locale, Locale(identifier: "nb_NO"))
                 .task { Lagring.flyttGamleBilder(container.mainContext) }
+        }
+        .onChange(of: scenePhase, initial: true) { _, fase in
+            if fase == .active {
+                AutoKopi.kjorHvisNodvendig(container.mainContext)
+            }
         }
         .modelContainer(container)
     }
