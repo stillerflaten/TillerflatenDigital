@@ -66,6 +66,9 @@ final class Bilag {
     var erRegning: Bool = false
     var forfallsdato: Date? = nil
     var erBetalt: Bool = true
+    /// Kjøpt fra utlandet uten norsk mva (f.eks. Apple Developer, Claude, GitHub).
+    /// Er du mva-registrert, skal du selv beregne mva av slike kjøp («omvendt avgiftsplikt»).
+    var fraUtlandet: Bool = false
 
     /// Bildet fra første versjon av appen (ett bilde per bilag). Flyttes til `vedlegg`
     /// når appen starter, se `Lagring.flyttGamleBilder`. Ikke bruk dette feltet ellers.
@@ -84,11 +87,23 @@ final class Bilag {
         set { kategoriRaw = newValue.rawValue }
     }
 
+    /// Om mva-en på denne kvitteringen kan trekkes fra, altså om foretaket var mva-registrert da den ble betalt.
+    func harMvaFradrag(mvaRegistrert: Bool, mvaFra: Date? = Mva.registrertFra) -> Bool {
+        guard mvaRegistrert else { return false }
+        guard let fra = mvaFra else { return true }
+        return dato >= Frister.kalender.startOfDay(for: fra)
+    }
+
     /// Beløpet som kan trekkes fra som kostnad i år.
-    func fradrag(mvaRegistrert: Bool) -> Double {
+    func fradrag(mvaRegistrert: Bool, mvaFra: Date? = Mva.registrertFra) -> Double {
         guard kategori != .driftsmiddel else { return 0 }
-        let grunnlag = mvaRegistrert ? belop - mva : belop
+        let grunnlag = harMvaFradrag(mvaRegistrert: mvaRegistrert, mvaFra: mvaFra) ? belop - mva : belop
         return grunnlag * naeringsandel / 100
+    }
+
+    /// Mva du får tilbake for denne kvitteringen (bare den delen som gjelder foretaket).
+    func inngaendeMva(mvaRegistrert: Bool, mvaFra: Date? = Mva.registrertFra) -> Double {
+        harMvaFradrag(mvaRegistrert: mvaRegistrert, mvaFra: mvaFra) ? mva * naeringsandel / 100 : 0
     }
 
     init(dato: Date = .now, tittel: String = "", belop: Double = 0, kategori: Utgiftskategori = .annet) {

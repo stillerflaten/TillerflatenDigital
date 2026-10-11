@@ -120,6 +120,14 @@ struct ArkivAarView: View {
 
             Section {
                 NavigationLink {
+                    SkattemeldingView(aar: aar)
+                } label: {
+                    Label("Tall til skattemeldingen", systemImage: "doc.text")
+                }
+            }
+
+            Section {
+                NavigationLink {
                     List {
                         BilagMaanedSeksjoner(bilag: bilag)
                     }

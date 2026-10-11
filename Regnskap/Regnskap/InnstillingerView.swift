@@ -8,11 +8,21 @@ struct InnstillingerView: View {
     @AppStorage(Innstilling.mvaAarstermin) private var mvaAarstermin = false
     @AppStorage(Innstilling.forskuddsskatt) private var forskuddsskatt = true
     @AppStorage(Innstilling.hjemmekontor) private var hjemmekontor = false
+    @AppStorage(Innstilling.mvaFra) private var mvaFra: Double = 0
+    @AppStorage(Innstilling.laas) private var laas = false
 
     var body: some View {
         NavigationStack {
             Form {
                 SikkerhetskopiSeksjon()
+
+                if Laas.stottes {
+                    Section {
+                        Toggle("Lås med \(Laas.metode)", isOn: $laas)
+                    } footer: {
+                        Text("Appen låses når du går ut av den, og må låses opp med \(Laas.metode) når du kommer tilbake. Gjelder bare denne enheten.")
+                    }
+                }
 
                 Section {
                     NavigationLink {
@@ -38,13 +48,22 @@ struct InnstillingerView: View {
 
                 Section {
                     Toggle("Foretaket er mva-registrert", isOn: $mvaRegistrert)
+                        .onChange(of: mvaRegistrert) { _, paa in
+                            if paa && mvaFra == 0 { mvaFra = Frister.kalender.startOfDay(for: .now).timeIntervalSince1970 }
+                        }
                     if mvaRegistrert {
+                        DatePicker("Registrert fra", selection: Binding(
+                            get: { mvaFra > 0 ? Date(timeIntervalSince1970: mvaFra) : .now },
+                            set: { mvaFra = $0.timeIntervalSince1970 }
+                        ), displayedComponents: .date)
                         Toggle("Årstermin (én mva-melding i året)", isOn: $mvaAarstermin)
                     }
                 } header: {
                     Text("Merverdiavgift")
                 } footer: {
-                    Text("Når du er mva-registrert, trekkes mva fra i utgiftene (du får den tilbake), og appen viser mva-frister.")
+                    Text(mvaRegistrert
+                         ? "Mva på kvitteringer fra og med denne datoen trekkes fra (du får den tilbake). Nye fakturaer får 25 % mva, og appen viser mva-frister og tall til mva-meldingen."
+                         : "Når du er mva-registrert, trekkes mva fra i utgiftene (du får den tilbake), og appen viser mva-frister.")
                 }
 
                 Section {

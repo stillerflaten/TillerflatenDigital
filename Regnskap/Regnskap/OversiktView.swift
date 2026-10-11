@@ -100,6 +100,11 @@ struct OversiktView: View {
                     }
                     if mvaRegistrert {
                         RadVerdi("Inngående mva (får du tilbake)", o.inngaendeMva.kr)
+                        NavigationLink {
+                            MvaMeldingView()
+                        } label: {
+                            Label("Tall til mva-meldingen", systemImage: "doc.text.magnifyingglass")
+                        }
                     }
                 }
 
@@ -217,9 +222,11 @@ struct MvaGrenseView: View {
                 .tint(andel >= 1 ? Color.red : andel > 0.8 ? Color.orange : Color.accentColor)
             Text(andel >= 1
                  ? "Du har passert grensen og skal registrere deg i Merverdiavgiftsregisteret. Se Kalkulatorer → Mva."
+                 : andel >= 0.8
+                 ? "Du nærmer deg grensen. Når salget passerer 50 000 kr, må du registrere foretaket for mva, og fakturaene etter det skal ha 25 % mva. Se Kalkulatorer → Mva."
                  : "Når omsetningen passerer 50 000 kr i løpet av 12 måneder, må du registrere foretaket for mva.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(andel >= 0.8 ? Color.orange : Color.secondary)
         }
         .padding(.vertical, 4)
     }

@@ -190,11 +190,18 @@ struct BilagSkjemaView: View {
                 DatePicker("Dato", selection: $bilag.dato, displayedComponents: .date)
                 BelopFelt("Beløp inkl. mva", belop: $bilag.belop)
                 if mvaRegistrert {
-                    BelopFelt("Herav mva", belop: $bilag.mva)
-                    Button("Regn ut 25 % mva") {
-                        bilag.mva = (bilag.belop * 0.2).rounded(toPlaces: 2)
+                    Toggle("Kjøpt fra utlandet uten norsk mva", isOn: $bilag.fraUtlandet)
+                    if !bilag.fraUtlandet {
+                        BelopFelt("Herav mva", belop: $bilag.mva)
+                        Button("Regn ut 25 % mva") {
+                            bilag.mva = (bilag.belop * 0.2).rounded(toPlaces: 2)
+                        }
+                        .font(.footnote)
                     }
-                    .font(.footnote)
+                }
+            } footer: {
+                if mvaRegistrert && bilag.fraUtlandet {
+                    Text("F.eks. Apple Developer, Claude og GitHub. Appen beregner norsk mva av beløpet i mva-meldingen og trekker den fra igjen.")
                 }
             }
 

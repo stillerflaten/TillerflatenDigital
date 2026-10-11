@@ -62,6 +62,11 @@ final class Faktura {
     var kreditererUUID: UUID? = nil
     var kreditererNummer: Int = 0
 
+    /// Purringer: hvor mange som er sendt, når den siste ble sendt, og den nye fristen.
+    var antallPurringer: Int = 0
+    var purreDato: Date? = nil
+    var purreFrist: Date? = nil
+
     @Relationship(deleteRule: .cascade, inverse: \FakturaLinje.faktura) var linjer: [FakturaLinje]? = []
 
     init() {}
@@ -86,6 +91,9 @@ final class Faktura {
     var erForfalt: Bool {
         status == .sendt && !erKreditnota && Frister.kalender.startOfDay(for: forfallsdato) < Frister.kalender.startOfDay(for: .now)
     }
+
+    /// Fristen kunden må betale innen nå: fristen i siste purring, ellers forfallsdatoen.
+    var gjeldendeFrist: Date { purreFrist ?? forfallsdato }
 
     var tittel: String {
         let kunde = kundeNavn.isEmpty ? "Uten kunde" : kundeNavn

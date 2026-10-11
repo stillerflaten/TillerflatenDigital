@@ -4,6 +4,8 @@
 <dict>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Appen legger frister og forfall på regninger inn i en egen kalender som heter «Tillerflaten Digital».</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Face ID brukes til å låse opp regnskapet.</string>
 	<key>NSUbiquitousContainers</key>
 	<dict>
 		<key>iCloud.Silje.Regnskap</key>

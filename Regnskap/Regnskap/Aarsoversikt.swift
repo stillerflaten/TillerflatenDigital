@@ -9,6 +9,10 @@ enum Innstilling {
     static let hjemmekontor = "innstilling.hjemmekontor"
     static let varsler = "innstilling.varsler"
     static let varselDagerFor = "innstilling.varselDagerFor"
+    /// Datoen foretaket ble mva-registrert (sekunder siden 1970). 0 betyr ikke oppgitt.
+    static let mvaFra = "innstilling.mvaFra"
+    /// Lås appen med Face ID / Touch ID. Gjelder bare denne enheten.
+    static let laas = "innstilling.laas"
 }
 
 /// Regnskapet for ett år, satt sammen av alt du har registrert.
@@ -37,7 +41,7 @@ struct Aarsoversikt {
 
         let aaretsBilag = bilag.filter { $0.dato.aar == aar }
         self.utgifter = aaretsBilag.reduce(0) { $0 + $1.fradrag(mvaRegistrert: mvaRegistrert) }
-        self.inngaendeMva = mvaRegistrert ? aaretsBilag.reduce(0) { $0 + $1.mva * $1.naeringsandel / 100 } : 0
+        self.inngaendeMva = aaretsBilag.reduce(0) { $0 + $1.inngaendeMva(mvaRegistrert: mvaRegistrert) }
 
         self.avskrivninger = Aarsoversikt.avskrivning(i: aar, driftsmidler: driftsmidler, satser: satser)
 

@@ -37,6 +37,7 @@ struct Sikkerhetskopi: Codable {
         var forfallsdato: Date?
         var erBetalt: Bool
         var vedlegg: [VedleggKopi]
+        var fraUtlandet: Bool? = nil
     }
 
     struct InntektKopi: Codable {
@@ -82,6 +83,7 @@ struct Sikkerhetskopi: Codable {
         var firmaEpost: String?
         var betalingsfrist: Int?
         var startnummer: Int?
+        var mvaFra: Double? = nil
     }
 
     struct KundeKopi: Codable {
@@ -104,6 +106,7 @@ struct Sikkerhetskopi: Codable {
         var naeringsandel: Double
         var aktiv: Bool
         var notat: String
+        var fraUtlandet: Bool? = nil
     }
 
     struct LinjeKopi: Codable {
@@ -139,6 +142,9 @@ struct Sikkerhetskopi: Codable {
         var linjer: [LinjeKopi]
         var kreditererUUID: UUID?
         var kreditererNummer: Int?
+        var antallPurringer: Int? = nil
+        var purreDato: Date? = nil
+        var purreFrist: Date? = nil
     }
 
     // MARK: Lage kopi
@@ -149,7 +155,8 @@ struct Sikkerhetskopi: Codable {
             BilagKopi(uuid: b.uuid, dato: b.dato, tittel: b.tittel, belop: b.belop, mva: b.mva,
                       kategoriRaw: b.kategoriRaw, naeringsandel: b.naeringsandel, notat: b.notat,
                       erRegning: b.erRegning, forfallsdato: b.forfallsdato, erBetalt: b.erBetalt,
-                      vedlegg: b.sorterteVedlegg.map { VedleggKopi(uuid: $0.uuid, opprettet: $0.opprettet, nr: $0.nr, data: $0.data) })
+                      vedlegg: b.sorterteVedlegg.map { VedleggKopi(uuid: $0.uuid, opprettet: $0.opprettet, nr: $0.nr, data: $0.data) },
+                      fraUtlandet: b.fraUtlandet)
         }
         kopi.inntekter = try context.fetch(FetchDescriptor<Inntekt>()).map {
             InntektKopi(uuid: $0.uuid, dato: $0.dato, belop: $0.belop, kilde: $0.kilde, notat: $0.notat, bilde: $0.bilde)
@@ -176,7 +183,8 @@ struct Sikkerhetskopi: Codable {
             firmaKontonr: d.string(forKey: Firma.kontonr),
             firmaEpost: Firma.lagretEpost,
             betalingsfrist: Firma.lagretBetalingsfrist,
-            startnummer: Firma.lagretStartnummer)
+            startnummer: Firma.lagretStartnummer,
+            mvaFra: d.double(forKey: Innstilling.mvaFra))
         kopi.kunder = try context.fetch(FetchDescriptor<Kunde>()).map {
             KundeKopi(uuid: $0.uuid, navn: $0.navn, adresse: $0.adresse, orgnr: $0.orgnr, epost: $0.epost,
                       opprettet: $0.opprettet, notat: $0.notat)
@@ -184,7 +192,7 @@ struct Sikkerhetskopi: Codable {
         kopi.fasteUtgifter = try context.fetch(FetchDescriptor<FastUtgift>()).map {
             FastUtgiftKopi(uuid: $0.uuid, navn: $0.navn, belop: $0.belop, kategoriRaw: $0.kategoriRaw,
                            intervallRaw: $0.intervallRaw, nesteTrekk: $0.nesteTrekk, naeringsandel: $0.naeringsandel,
-                           aktiv: $0.aktiv, notat: $0.notat)
+                           aktiv: $0.aktiv, notat: $0.notat, fraUtlandet: $0.fraUtlandet)
         }
         kopi.fakturaer = try context.fetch(FetchDescriptor<Faktura>()).map { f in
             FakturaKopi(uuid: f.uuid, nummer: f.nummer, statusRaw: f.statusRaw, fakturadato: f.fakturadato,
@@ -198,7 +206,8 @@ struct Sikkerhetskopi: Codable {
                             LinjeKopi(uuid: $0.uuid, nr: $0.nr, beskrivelse: $0.beskrivelse,
                                       antall: $0.antall, enhetspris: $0.enhetspris)
                         },
-                        kreditererUUID: f.kreditererUUID, kreditererNummer: f.kreditererNummer)
+                        kreditererUUID: f.kreditererUUID, kreditererNummer: f.kreditererNummer,
+                        antallPurringer: f.antallPurringer, purreDato: f.purreDato, purreFrist: f.purreFrist)
         }
         return kopi
     }
@@ -240,6 +249,7 @@ struct Sikkerhetskopi: Codable {
             b.erRegning = k.erRegning
             b.forfallsdato = k.forfallsdato
             b.erBetalt = k.erBetalt
+            b.fraUtlandet = k.fraUtlandet ?? false
             context.insert(b)
             var nye: [Vedlegg] = []
             for vk in k.vedlegg {
@@ -328,6 +338,9 @@ struct Sikkerhetskopi: Codable {
             f.inntektUUID = k.inntektUUID
             f.kreditererUUID = k.kreditererUUID
             f.kreditererNummer = k.kreditererNummer ?? 0
+            f.antallPurringer = k.antallPurringer ?? 0
+            f.purreDato = k.purreDato
+            f.purreFrist = k.purreFrist
             context.insert(f)
             var nye: [FakturaLinje] = []
             for lk in k.linjer {
@@ -352,6 +365,7 @@ struct Sikkerhetskopi: Codable {
             u.naeringsandel = k.naeringsandel
             u.aktiv = k.aktiv
             u.notat = k.notat
+            u.fraUtlandet = k.fraUtlandet ?? false
             context.insert(u)
             Varsler.planleggFastUtgift(u)
             resultat.lagtTil += 1
@@ -378,6 +392,7 @@ struct Sikkerhetskopi: Codable {
             d.set(inn.mvaAarstermin, forKey: Innstilling.mvaAarstermin)
             d.set(inn.forskuddsskatt, forKey: Innstilling.forskuddsskatt)
             d.set(inn.hjemmekontor, forKey: Innstilling.hjemmekontor)
+            if let fra = inn.mvaFra { d.set(fra, forKey: Innstilling.mvaFra) }
         }
 
         try context.save()
