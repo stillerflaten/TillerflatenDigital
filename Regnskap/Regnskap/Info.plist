@@ -4,6 +4,18 @@
 <dict>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Appen legger frister og forfall på regninger inn i en egen kalender som heter «Tillerflaten Digital».</string>
+	<key>NSUbiquitousContainers</key>
+	<dict>
+		<key>iCloud.Silje.Regnskap</key>
+		<dict>
+			<key>NSUbiquitousContainerIsDocumentScopePublic</key>
+			<true/>
+			<key>NSUbiquitousContainerName</key>
+			<string>Regnskap</string>
+			<key>NSUbiquitousContainerSupportedFolderLevels</key>
+			<string>Any</string>
+		</dict>
+	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

@@ -143,7 +143,6 @@ struct Sikkerhetskopi: Codable {
 
     // MARK: Lage kopi
 
-    @MainActor
     static func lag(fra context: ModelContext) throws -> Sikkerhetskopi {
         var kopi = Sikkerhetskopi()
         kopi.bilag = try context.fetch(FetchDescriptor<Bilag>()).map { b in
@@ -409,6 +408,9 @@ struct SikkerhetskopiFil: FileDocument {
 struct SikkerhetskopiSeksjon: View {
     @Environment(\.modelContext) private var context
     @AppStorage("sikkerhetskopi.sist") private var sistKopiert: Double = 0
+    @AppStorage(AutoKopi.paaNokkel) private var autoPaa = true
+    @AppStorage(AutoKopi.sistNokkel) private var autoSist: Double = 0
+    @AppStorage(AutoKopi.stedNokkel) private var autoSted = ""
 
     @State private var fil: SikkerhetskopiFil?
     @State private var visEksport = false
@@ -432,6 +434,13 @@ struct SikkerhetskopiSeksjon: View {
                 } else {
                     Text("Av").foregroundStyle(.orange)
                 }
+            }
+
+            Toggle(isOn: $autoPaa) {
+                Label("Automatisk kopi hver dag", systemImage: "clock.arrow.circlepath")
+            }
+            .onChange(of: autoPaa) { _, paa in
+                if paa { AutoKopi.kjorHvisNodvendig(context) }
             }
 
             Button {
@@ -462,9 +471,15 @@ struct SikkerhetskopiSeksjon: View {
                 } else {
                     Text("iCloud-synk er ikke slått på i denne versjonen av appen. Ta sikkerhetskopi jevnlig.")
                 }
-                Text("Sikkerhetskopien er i tillegg en fil med alt innhold. Lagre den i iCloud Drive. Gjenoppretting legger bare til det som mangler, og sletter eller endrer aldri noe.")
+                Text("Synken speiler alt, også det du sletter ved et uhell. Sikkerhetskopien er en egen fil med alt innhold som du kan hente tilbake fra. Gjenoppretting legger bare til det som mangler, og sletter eller endrer aldri noe.")
+                if autoPaa {
+                    Text("Den automatiske kopien tas når du åpner appen, høyst én gang i døgnet. De fem nyeste og én fra hver av de seks siste månedene med kopi beholdes.")
+                }
+                if autoSist > 0 {
+                    Text("Siste automatiske kopi: \(Date(timeIntervalSince1970: autoSist).formatted(date: .abbreviated, time: .shortened)), \(autoSted)")
+                }
                 if sistKopiert > 0 {
-                    Text("Siste sikkerhetskopi: \(Date(timeIntervalSince1970: sistKopiert).formatted(date: .abbreviated, time: .shortened))")
+                    Text("Siste kopi du lagret selv: \(Date(timeIntervalSince1970: sistKopiert).formatted(date: .abbreviated, time: .shortened))")
                 }
             }
         }
