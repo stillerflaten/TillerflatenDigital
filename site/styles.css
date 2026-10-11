@@ -422,3 +422,17 @@ a { color: var(--accent); }
   .form-row { grid-template-columns: 1fr; }
   .shots img { flex: 0 0 44%; width: 44%; min-width: 0; scroll-snap-align: start; }
 }
+
+/* Animasjon: skjult til motion.js viser det. Se <head> og motion.js. */
+.motion .hero .wrap > *,
+.motion .section h2,
+.motion .section-lead,
+.motion .contact .lead,
+.motion .card,
+.motion .price-note,
+.motion .step,
+.motion .about > div > p,
+.motion .contact .form,
+.motion .app-info,
+.motion .shots img,
+.motion .web-shots img { visibility: hidden; }
