@@ -130,4 +130,77 @@ struct SikkerhetskopiTests {
         let sum = try db.fetch(FetchDescriptor<Inntekt>()).reduce(0) { $0 + $1.belop }
         #expect(sum == 0)
     }
+
+    // MARK: Mva og skattemelding
+
+    private func dag(_ aar: Int, _ maaned: Int, _ dag: Int) -> Date {
+        Frister.kalender.date(from: DateComponents(year: aar, month: maaned, day: dag, hour: 12))!
+    }
+
+    @Test func mvaMeldingRegnerUtAaBetale() throws {
+        let db = try nyDatabase()
+        // Faktura i mars med 25 % mva: 10 000 + 2 500
+        let f = sendtFaktura(db, belop: 10_000)
+        f.mvaSats = 0.25
+        f.fakturadato = dag(2026, 3, 10)
+        // Mac kjøpt i Norge: 2 000 i mva, 100 % i foretaket
+        let mac = Bilag(dato: dag(2026, 4, 2), tittel: "Mac", belop: 10_000, kategori: .driftsmiddel)
+        mac.mva = 2_000
+        db.insert(mac)
+        // Claude fra utlandet: 200 kr, 50 % i foretaket
+        let claude = Bilag(dato: dag(2026, 3, 5), tittel: "Claude", belop: 200, kategori: .programvare)
+        claude.fraUtlandet = true
+        claude.naeringsandel = 50
+        db.insert(claude)
+        // App Store i april, og noe utenfor perioden
+        db.insert(Inntekt(dato: dag(2026, 4, 20), belop: 3_000, kilde: "App Store"))
+        db.insert(Inntekt(dato: dag(2026, 5, 1), belop: 9_999, kilde: "App Store"))
+
+        let m = MvaMelding(termin: Mva.Termin(aar: 2026, nr: 2), bilag: try db.fetch(FetchDescriptor<Bilag>()),
+                           inntekter: try db.fetch(FetchDescriptor<Inntekt>()),
+                           fakturaer: try db.fetch(FetchDescriptor<Faktura>()), mvaFra: nil)
+        #expect(m.salgGrunnlag == 10_000)
+        #expect(m.salgMva == 2_500)
+        #expect(m.fritattUtland == 3_000)
+        #expect(m.inngaendeMva == 2_000)
+        #expect(m.utlandBeregnet == 50)
+        #expect(m.utlandFradrag == 25)
+        #expect(m.aaBetale == 2_500 + 50 - 2_000 - 25)
+    }
+
+    @Test func mvaMeldingTellerIkkeFoerRegistrering() throws {
+        let db = try nyDatabase()
+        let b = Bilag(dato: dag(2026, 3, 5), tittel: "Skjerm", belop: 2_500, kategori: .utstyr)
+        b.mva = 500
+        db.insert(b)
+        let m = MvaMelding(termin: Mva.Termin(aar: 2026, nr: 2), bilag: [b], inntekter: [], fakturaer: [],
+                           mvaFra: dag(2026, 4, 1))
+        #expect(m.inngaendeMva == 0)
+        #expect(b.fradrag(mvaRegistrert: true, mvaFra: dag(2026, 4, 1)) == 2_500)
+        #expect(b.fradrag(mvaRegistrert: true, mvaFra: dag(2026, 3, 1)) == 2_000)
+    }
+
+    @Test func naeringsspesifikasjonenStemmerMedOverskuddet() throws {
+        let db = try nyDatabase()
+        let a = Bilag(dato: dag(2026, 2, 1), tittel: "GitHub", belop: 1_000, kategori: .programvare)
+        let b = Bilag(dato: dag(2026, 6, 1), tittel: "Telefon", belop: 4_000, kategori: .telefonInternett)
+        b.naeringsandel = 50
+        db.insert(a)
+        db.insert(b)
+        db.insert(Inntekt(dato: dag(2026, 3, 1), belop: 20_000, kilde: "App Store"))
+        db.insert(Inntekt(dato: dag(2026, 4, 1), belop: 8_000, kilde: "Faktura"))
+        db.insert(Kjoretur(dato: dag(2026, 5, 1), fra: "Hjem", til: "Kunde", formal: "Møte", km: 100))
+        let bilag = try db.fetch(FetchDescriptor<Bilag>())
+        let inntekter = try db.fetch(FetchDescriptor<Inntekt>())
+        let turer = try db.fetch(FetchDescriptor<Kjoretur>())
+
+        let n = Naeringsspesifikasjon(aar: 2026, bilag: bilag, inntekter: inntekter, driftsmidler: [], turer: turer,
+                                      mvaRegistrert: false, hjemmekontor: true, mvaFra: nil)
+        let o = Aarsoversikt(aar: 2026, bilag: bilag, inntekter: inntekter, driftsmidler: [], turer: turer,
+                             lonn: 0, mvaRegistrert: false, hjemmekontor: true)
+        #expect(n.sumInntekter == 28_000)
+        #expect(abs(n.resultat - o.overskudd) < 0.01)
+        #expect(n.kostnader.contains { $0.konto == "6552" && $0.belop == 1_000 })
+        #expect(n.kostnader.contains { $0.konto == "6900" && $0.belop == 2_000 })
+    }
 }

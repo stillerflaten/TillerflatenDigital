@@ -8,6 +8,7 @@ struct RegnskapApp: App {
 
     init() {
         Tema.konfigurer()
+        InnstillingSynk.start()
     }
 
     var body: some Scene {
@@ -17,8 +18,14 @@ struct RegnskapApp: App {
                 .task { Lagring.flyttGamleBilder(container.mainContext) }
         }
         .onChange(of: scenePhase, initial: true) { _, fase in
-            if fase == .active {
+            switch fase {
+            case .active:
+                Laas.appenErAktiv()
                 AutoKopi.kjorHvisNodvendig(container.mainContext)
+            case .background:
+                Laas.appenErBorte()
+            default:
+                break
             }
         }
         .modelContainer(container)

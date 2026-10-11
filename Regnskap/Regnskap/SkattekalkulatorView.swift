@@ -41,13 +41,23 @@ struct KalkulatorerView: View {
                     } label: {
                         Label {
                             VStack(alignment: .leading) {
-                                Text("Mva og App Store")
-                                Text("Når må jeg registrere meg?").font(.caption).foregroundStyle(.secondary)
+                                Text("Mva")
+                                Text("Grensen, App Store, nettsider og mva-meldingen").font(.caption).foregroundStyle(.secondary)
                             }
                         } icon: { Image(systemName: "building.columns") }
                     }
                 }
                 Section {
+                    NavigationLink {
+                        SkattemeldingView(aar: Date.now.aar - (Frister.kalender.component(.month, from: .now) <= 5 ? 1 : 0))
+                    } label: {
+                        Label {
+                            VStack(alignment: .leading) {
+                                Text("Skattemeldingen")
+                                Text("Tallene til næringsspesifikasjonen").font(.caption).foregroundStyle(.secondary)
+                            }
+                        } icon: { Image(systemName: "doc.text") }
+                    }
                     NavigationLink {
                         SjekklisteView()
                     } label: {

@@ -171,3 +171,22 @@ struct AutoKopiTests {
         #expect(AutoKopi.filerSomSkalSlettes(filer).isEmpty)
     }
 }
+
+struct MvaTerminTests {
+    @Test func terminerDekkerToMaaneder() {
+        let t = Mva.Termin(aar: 2026, nr: 3)
+        let mai = Frister.kalender.date(from: DateComponents(year: 2026, month: 5, day: 1))!
+        let juli = Frister.kalender.date(from: DateComponents(year: 2026, month: 7, day: 1))!
+        #expect(t.fra == mai)
+        #expect(t.til == juli)
+        #expect(Mva.Termin.gjeldende(Frister.kalender.date(from: DateComponents(year: 2026, month: 12, day: 31, hour: 12))!, aarstermin: false).nr == 6)
+        #expect(Mva.Termin.gjeldende(mai, aarstermin: true).nr == 0)
+    }
+
+    @Test func synkSammenlignerVerdier() {
+        #expect(InnstillingSynk.erLike(nil, nil))
+        #expect(InnstillingSynk.erLike(500_000.0, 500_000.0))
+        #expect(!InnstillingSynk.erLike("a", "b"))
+        #expect(!InnstillingSynk.erLike(true, nil))
+    }
+}

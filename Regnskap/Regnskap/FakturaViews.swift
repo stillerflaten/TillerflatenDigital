@@ -159,6 +159,9 @@ struct FakturaRad: View {
                     case .sendt where faktura.erKreditnota:
                         Text("Skal betales tilbake til kunden")
                             .foregroundStyle(Color.orange)
+                    case .sendt where faktura.antallPurringer > 0:
+                        Text("Purret, ny frist \(faktura.gjeldendeFrist.formatted(date: .abbreviated, time: .omitted))")
+                            .foregroundStyle(Color.red)
                     case .sendt:
                         Text(faktura.erForfalt ? "Forfalt \(faktura.forfallsdato.formatted(date: .abbreviated, time: .omitted))"
                                                : "Forfaller \(faktura.forfallsdato.formatted(date: .abbreviated, time: .omitted))")
@@ -201,6 +204,7 @@ struct FakturaView: View {
     @State private var nyKreditnota: Faktura?
     @State private var bekreftKreditnota = false
     @State private var kalenderMelding: String?
+    @State private var visPurring = false
 
     /// Bare den siste fakturaen kan slettes, så nummerserien ikke får hull.
     private var erSisteFaktura: Bool {
@@ -522,6 +526,30 @@ struct FakturaView: View {
             }
         }
 
+        if !faktura.erKreditnota && faktura.status == .sendt && (faktura.erForfalt || faktura.antallPurringer > 0) {
+            Section {
+                if let dato = faktura.purreDato, let frist = faktura.purreFrist {
+                    RadVerdi(faktura.antallPurringer > 1 ? "Purret \(faktura.antallPurringer) ganger, sist" : "Purret",
+                             dato.formatted(date: .abbreviated, time: .omitted))
+                    RadVerdi("Ny frist", frist.formatted(date: .abbreviated, time: .omitted))
+                }
+                Button {
+                    visPurring = true
+                } label: {
+                    Label(faktura.antallPurringer == 0 ? "Send purring" : "Send ny purring", systemImage: "envelope.badge")
+                }
+            } header: {
+                Text("Purring")
+            } footer: {
+                Text("En purring er en vennlig påminnelse med ny frist. Du får et nytt varsel dagen etter den nye fristen.")
+            }
+            .sheet(isPresented: $visPurring) {
+                NavigationStack {
+                    PurringView(faktura: faktura, belop: gjenstaar)
+                }
+            }
+        }
+
         if !faktura.erKreditnota && (faktura.status == .sendt || faktura.status == .betalt) {
             Section {
                 Button {
@@ -561,6 +589,77 @@ struct FakturaView: View {
         case .kreditert where faktura.erKreditnota: "Trukket fra faktura \(faktura.kreditererNummer)"
         case .betalt where faktura.erKreditnota: "Betalt tilbake"
         default: faktura.status.navn
+        }
+    }
+}
+
+/// Lager en purring på en forfalt faktura, med ny frist.
+struct PurringView: View {
+    @Environment(\.dismiss) private var dismiss
+    let faktura: Faktura
+    let belop: Double
+
+    @State private var frist: Date
+    @State private var pdf: URL?
+
+    init(faktura: Faktura, belop: Double) {
+        self.faktura = faktura
+        self.belop = belop
+        _frist = State(initialValue: Frister.kalender.date(byAdding: .day, value: 14, to: .now) ?? .now)
+    }
+
+    private var purring: FakturaSide.Purring {
+        FakturaSide.Purring(nr: faktura.antallPurringer + 1, frist: frist, belop: belop)
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                DatePicker("Ny frist", selection: $frist, in: Date.now..., displayedComponents: .date)
+            } footer: {
+                Text("14 dager er vanlig. Skal du senere sende saken til inkasso, må kunden ha fått minst 14 dager på seg etter purringen.")
+            }
+
+            Section {
+                FakturaSide(faktura: faktura, purring: purring)
+                    .scaleEffect(0.5, anchor: .topLeading)
+                    .frame(width: FakturaSide.a4.width / 2, height: FakturaSide.a4.height / 2, alignment: .topLeading)
+                    .frame(maxWidth: .infinity)
+                    .allowsHitTesting(false)
+            }
+
+            Section {
+                if let pdf {
+                    ShareLink(item: pdf,
+                              subject: Text("Påminnelse: faktura \(faktura.nummer) fra \(faktura.selgerNavn)"),
+                              message: Text("Hei!\n\nVi kan ikke se å ha mottatt betaling for faktura \(faktura.nummer). Vedlagt er en påminnelse med ny frist \(frist.formatted(date: .long, time: .omitted)). Har du betalt nylig, kan du se bort fra denne.\n\nMed vennlig hilsen\n\(faktura.selgerEier)\n\(faktura.selgerNavn)")) {
+                        Label("Send eller del purringen", systemImage: "paperplane")
+                    }
+                } else {
+                    ProgressView()
+                }
+            } footer: {
+                if !faktura.kundeEpost.isEmpty {
+                    Text("Velg Mail og send til \(faktura.kundeEpost). Trykk Sendt når purringen er sendt.")
+                }
+            }
+        }
+        .navigationTitle(purring.nr > 1 ? "Purring \(purring.nr)" : "Purring")
+        .navigationBarTitleDisplayMode(.inline)
+        .task(id: frist) { pdf = FakturaPDF.purrefil(for: faktura, purring: purring) }
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Avbryt") { dismiss() }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Sendt") {
+                    faktura.antallPurringer += 1
+                    faktura.purreDato = .now
+                    faktura.purreFrist = frist
+                    Fakturering.planleggVarsel(for: faktura)
+                    dismiss()
+                }
+            }
         }
     }
 }

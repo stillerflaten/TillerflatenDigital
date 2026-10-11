@@ -49,9 +49,9 @@ enum Varsler {
         guard faktura.status == .sendt, !faktura.erKreditnota else { return }
         let innhold = UNMutableNotificationContent()
         innhold.title = "Faktura \(faktura.nummer) er ikke betalt"
-        innhold.body = "\(faktura.kundeNavn) skulle betalt \(faktura.total.kr) i går. Har pengene kommet, merker du fakturaen som betalt. Hvis ikke, send en vennlig påminnelse."
+        innhold.body = "\(faktura.kundeNavn) skulle betalt \(faktura.total.kr) i går. Har pengene kommet, merker du fakturaen som betalt. Hvis ikke, kan du sende en purring fra fakturaen."
         innhold.sound = .default
-        leggTil(id: id, dato: faktura.forfallsdato, dagerFor: -1, innhold: innhold)
+        leggTil(id: id, dato: faktura.gjeldendeFrist, dagerFor: -1, innhold: innhold)
     }
 
     static func fjernFaktura(_ faktura: Faktura) {

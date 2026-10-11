@@ -7,32 +7,139 @@ struct MvaView: View {
 
     var body: some View {
         List {
-            if !mvaRegistrert {
+            if mvaRegistrert {
+                Section {
+                    NavigationLink {
+                        MvaMeldingView()
+                    } label: {
+                        Label("Tall til mva-meldingen", systemImage: "doc.text.magnifyingglass")
+                    }
+                }
+            } else {
                 Section {
                     MvaGrenseView(inntekter: inntekter)
                 }
             }
 
-            Section("Hvordan App Store fungerer") {
-                Text("Når noen kjøper appen din, er det Apple som selger den til kunden. Apple krever inn og betaler mva til Norge og andre land. Du selger i praksis en tjeneste til Apple, som holder til i utlandet.")
-                Text("Salg av slike tjenester til en bedrift i utlandet er fritatt for norsk mva (null-sats). Du legger altså ikke 25 % mva på det Apple betaler deg.")
-                Text("Fritatt omsetning teller likevel med når du regner om du har passert 50 000 kr. Passerer du grensen, skal foretaket registreres i Merverdiavgiftsregisteret.")
+            Section("Når må jeg registrere meg?") {
+                Text("Når salget passerer 50 000 kr i løpet av 12 måneder, skal foretaket registreres i Merverdiavgiftsregisteret. Både App Store-inntekter og nettsideoppdrag teller med.")
+                Text("Du kan registrere deg når du passerer grensen. Fakturaer du sender etter at registreringen er godkjent, skal ha 25 % mva.")
+            }
+
+            Section("App Store") {
+                Text("Når noen kjøper appen din, er det Apple som selger den til kunden og betaler mva der kunden bor. Du selger i praksis en tjeneste til Apple, som holder til i utlandet.")
+                Text("Det er fritatt for norsk mva. Du legger altså ikke 25 % mva på det Apple betaler deg, og i mva-meldingen føres det som tjenester til utlandet.")
+            }
+
+            Section("Nettsider og andre oppdrag i Norge") {
+                Text("Lager du nettsider for norske kunder, er det vanlig salg med 25 % mva. Så lenge du ikke er registrert, sender du fakturaer uten mva.")
+                Text("Når du er registrert, legger appen på 25 % mva på nye fakturaer. Kunden betaler mva-en til deg, og du betaler den videre til staten i mva-meldingen.")
             }
 
             Section("Hva betyr det å være mva-registrert?") {
-                Label("Du får tilbake mva på utstyr og annet du kjøper i Norge, f.eks. 25 % av prisen på en ny Mac.", systemImage: "plus.circle")
-                Label("Du må levere mva-melding (vanligvis seks ganger i året, eller én gang i året ved lav omsetning).", systemImage: "minus.circle")
-                Label("Kjøper du tjenester fra utlandet (Apple Developer, GitHub, Claude osv.), må du selv beregne norsk mva av dem («omvendt avgiftsplikt»), men kan som regel trekke den fra igjen samtidig.", systemImage: "arrow.left.arrow.right.circle")
+                Label("Du får tilbake mva på det du kjøper i Norge til foretaket, f.eks. 25 % av prisen på en ny Mac.", systemImage: "plus.circle")
+                Label("Du må levere mva-melding seks ganger i året, eller én gang i året hvis omsetningen er lav og Skatteetaten godkjenner årstermin.", systemImage: "minus.circle")
+                Label("Kjøper du tjenester fra utlandet (Apple Developer, GitHub, Claude osv.), beregner du selv norsk mva av dem («omvendt avgiftsplikt»), og trekker den fra igjen samtidig. Merk slike bilag med «Kjøpt fra utlandet».", systemImage: "arrow.left.arrow.right.circle")
             }
 
             Section {
                 Link("Registrering i Merverdiavgiftsregisteret (Skatteetaten)", destination: Kilder.mva)
             } footer: {
-                Text("Mva for app-utviklere har noen spesielle regler. Ring gjerne Skatteetaten (800 80 000) eller spør en regnskapsfører før du registrerer deg, så du er sikker.")
+                Text("Usikker? Ring Skatteetaten (800 80 000) eller spør en regnskapsfører før du registrerer deg.")
             }
         }
         .temaBakgrunn()
         .navigationTitle("Mva")
+    }
+}
+
+/// Tallene til mva-meldingen for én termin.
+struct MvaMeldingView: View {
+    @Query private var bilag: [Bilag]
+    @Query private var inntekter: [Inntekt]
+    @Query private var fakturaer: [Faktura]
+    @AppStorage(Innstilling.mvaAarstermin) private var aarstermin = false
+
+    @State private var termin = Mva.Termin.gjeldende(aarstermin: false)
+
+    private var valg: [Mva.Termin] {
+        let iAar = Date.now.aar
+        return (Mva.Termin.alle(aar: iAar, aarstermin: aarstermin) + Mva.Termin.alle(aar: iAar - 1, aarstermin: aarstermin))
+            .filter { $0.fra <= .now }
+            .sorted { $0.fra > $1.fra }
+    }
+
+    var body: some View {
+        let m = MvaMelding(termin: termin, bilag: bilag, inntekter: inntekter, fakturaer: fakturaer)
+        List {
+            Section {
+                Picker("Periode", selection: $termin) {
+                    ForEach(valg) { Text($0.navn).tag($0) }
+                }
+            }
+
+            Section {
+                KodeRad(kode: "3", tekst: "Salg i Norge, 25 %", grunnlag: m.salgGrunnlag, mva: m.salgMva)
+                KodeRad(kode: "52", tekst: "Tjenester til utlandet, fritatt (App Store)", grunnlag: m.fritattUtland, mva: nil)
+                KodeRad(kode: "86", tekst: "Tjenester kjøpt fra utlandet", grunnlag: m.utlandGrunnlag, mva: m.utlandBeregnet)
+            } header: {
+                Text("Utgående mva")
+            } footer: {
+                Text("Salg regnes etter fakturadatoen, ikke når kunden betaler.")
+            }
+
+            Section {
+                KodeRad(kode: "1", tekst: "Fradrag for kjøp i Norge", grunnlag: nil, mva: m.inngaendeMva)
+                KodeRad(kode: "86", tekst: "Fradrag for kjøp fra utlandet", grunnlag: nil, mva: m.utlandFradrag)
+            } header: {
+                Text("Inngående mva (fradrag)")
+            }
+
+            Section {
+                RadVerdi(m.aaBetale >= 0 ? "Å betale" : "Til gode", abs(m.aaBetale).kr, uthevet: true)
+            } footer: {
+                VStack(alignment: .leading, spacing: 6) {
+                    if m.ukjenteInntekter != 0 {
+                        Text("\(m.ukjenteInntekter.kr) i inntekter lagt inn for hånd er ikke med, fordi appen ikke vet om de har mva. Legg dem til selv.")
+                    }
+                    Text("Mva-meldingen leveres i Altinn eller regnskapsprogrammet ditt. Kodene over er de samme som der. Sjekk tallene før du sender.")
+                }
+            }
+        }
+        .temaBakgrunn()
+        .navigationTitle("Mva-melding")
+        .onAppear {
+            // Start på siste avsluttede termin, den som skal leveres.
+            termin = valg.first { $0.til <= .now } ?? valg.first ?? Mva.Termin.gjeldende(aarstermin: aarstermin)
+        }
+    }
+}
+
+private struct KodeRad: View {
+    let kode: String
+    let tekst: String
+    let grunnlag: Double?
+    let mva: Double?
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(kode)
+                .font(.callout.monospacedDigit().weight(.semibold))
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 28, alignment: .leading)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(tekst)
+                if let grunnlag {
+                    Text("Grunnlag \(grunnlag.kr)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            if let mva {
+                Text(mva.kr).monospacedDigit()
+            }
+        }
     }
 }
 

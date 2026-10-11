@@ -37,6 +37,8 @@ final class FastUtgift {
     var naeringsandel: Double = 100
     var aktiv: Bool = true
     var notat: String = ""
+    /// Kjøpt fra utlandet uten norsk mva, se `Bilag.fraUtlandet`.
+    var fraUtlandet: Bool = false
 
     init(navn: String = "") {
         self.navn = navn
@@ -71,6 +73,7 @@ final class FastUtgift {
         let b = Bilag(dato: nesteTrekk, tittel: navn, belop: belop, kategori: kategori)
         b.naeringsandel = naeringsandel
         b.notat = notat
+        b.fraUtlandet = fraUtlandet
         return b
     }
 }
@@ -280,6 +283,7 @@ struct FastUtgiftSkjemaView: View {
                     }
                     Slider(value: $utgift.naeringsandel, in: 0...100, step: 5)
                 }
+                Toggle("Kjøpt fra utlandet uten norsk mva", isOn: $utgift.fraUtlandet)
                 TextField("Notat (f.eks. hvilket kort det trekkes fra)", text: $utgift.notat, axis: .vertical)
             }
 

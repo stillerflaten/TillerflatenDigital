@@ -3,6 +3,16 @@ import SwiftUI
 /// Fakturaen slik den ser ut på papir (A4). Brukes både til forhåndsvisning og PDF.
 struct FakturaSide: View {
     let faktura: Faktura
+    /// Satt når siden er en purring på fakturaen.
+    var purring: Purring? = nil
+
+    struct Purring {
+        /// 1 for første purring, 2 for andre osv.
+        let nr: Int
+        let frist: Date
+        /// Det kunden fortsatt skal betale.
+        let belop: Double
+    }
 
     static let a4 = CGSize(width: 595, height: 842)
 
@@ -33,6 +43,9 @@ struct FakturaSide: View {
             topp
             VStack(alignment: .leading, spacing: 22) {
                 parter
+                if let purring {
+                    purretekst(purring)
+                }
                 linjer
                 summer
                 if faktura.erKreditnota {
@@ -76,7 +89,7 @@ struct FakturaSide: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 3) {
-                Text(faktura.erKreditnota ? "KREDITNOTA" : "FAKTURA")
+                Text(purring.map { $0.nr > 1 ? "PURRING \($0.nr)" : "PURRING" } ?? (faktura.erKreditnota ? "KREDITNOTA" : "FAKTURA"))
                     .font(.system(size: 18, weight: .bold))
                     .tracking(2)
                 Text(faktura.nummer > 0 ? "Nr. \(faktura.nummer)" : "UTKAST")
@@ -116,6 +129,9 @@ struct FakturaSide: View {
                 rad("Levert", dato(faktura.leveringsdato))
                 if faktura.erKreditnota {
                     rad("Krediterer", "Faktura \(faktura.kreditererNummer)", uthevet: true)
+                } else if let purring {
+                    rad("Opprinnelig forfall", dato(faktura.forfallsdato))
+                    rad("Ny frist", dato(purring.frist), uthevet: true)
                 } else {
                     rad("Forfall", dato(faktura.forfallsdato), uthevet: true)
                 }
@@ -183,6 +199,18 @@ struct FakturaSide: View {
         .foregroundStyle(svart)
     }
 
+    private func purretekst(_ p: Purring) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            overskrift("Påminnelse")
+            Text("Vi kan ikke se å ha mottatt betaling for faktura nr. \(faktura.nummer), som forfalt \(dato(faktura.forfallsdato)). Vennligst betal \(Fakturering.kroner(p.belop)) innen \(dato(p.frist)). Har du betalt de siste dagene, kan du se bort fra denne purringen.")
+                .font(.system(size: 11))
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(fjell, lineWidth: 1))
+        .foregroundStyle(svart)
+    }
+
     private var kreditering: some View {
         VStack(alignment: .leading, spacing: 4) {
             overskrift("Kreditnota")
@@ -205,13 +233,13 @@ struct FakturaSide: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 overskrift("Beløp")
-                Text(Fakturering.kroner(faktura.total))
+                Text(Fakturering.kroner(purring?.belop ?? faktura.total))
                     .font(.system(size: 13, weight: .semibold))
                     .monospacedDigit()
             }
             VStack(alignment: .leading, spacing: 2) {
-                overskrift("Forfall")
-                Text(dato(faktura.forfallsdato))
+                overskrift(purring == nil ? "Forfall" : "Ny frist")
+                Text(dato(purring?.frist ?? faktura.forfallsdato))
                     .font(.system(size: 13, weight: .semibold))
             }
             Spacer(minLength: 0)
@@ -262,8 +290,8 @@ struct FakturaSide: View {
 enum FakturaPDF {
     /// Lager PDF-en for fakturaen.
     @MainActor
-    static func data(for faktura: Faktura) -> Data {
-        let renderer = ImageRenderer(content: FakturaSide(faktura: faktura))
+    static func data(for faktura: Faktura, purring: FakturaSide.Purring? = nil) -> Data {
+        let renderer = ImageRenderer(content: FakturaSide(faktura: faktura, purring: purring))
         let data = NSMutableData()
         renderer.render { _, tegn in
             var boks = CGRect(origin: .zero, size: FakturaSide.a4)
@@ -288,6 +316,15 @@ enum FakturaPDF {
     static func fil(for faktura: Faktura) -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(filnavn(for: faktura))
         try? data(for: faktura).write(to: url, options: .atomic)
+        return url
+    }
+
+    /// PDF med purring på fakturaen.
+    @MainActor
+    static func purrefil(for faktura: Faktura, purring: FakturaSide.Purring) -> URL {
+        let navn = Arkiv.filnavn(dato: .now, tittel: "Purring \(purring.nr) faktura \(faktura.nummer) \(faktura.kundeNavn)") + ".pdf"
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(navn)
+        try? data(for: faktura, purring: purring).write(to: url, options: .atomic)
         return url
     }
 }
