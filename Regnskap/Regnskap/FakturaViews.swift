@@ -133,10 +133,7 @@ struct FakturaListeView: View {
     }
 
     private func nyFaktura() {
-        let f = Faktura()
-        f.forfallsdato = Calendar.current.date(byAdding: .day, value: Firma.lagretBetalingsfrist, to: f.fakturadato) ?? f.fakturadato
-        f.mvaSats = UserDefaults.standard.bool(forKey: Innstilling.mvaRegistrert) ? 0.25 : 0
-        context.insert(f)
+        let f = Fakturering.nyttUtkast(context: context)
         let linje = FakturaLinje(nr: 1)
         context.insert(linje)
         f.linjer = [linje]
@@ -390,6 +387,14 @@ struct FakturaView: View {
 
         Section("Merknad på fakturaen") {
             TextField("F.eks. «Takk for oppdraget!»", text: $faktura.merknad, axis: .vertical)
+        }
+
+        if !faktura.erKreditnota {
+            Section {
+                Toggle("Legg ved takkebrev (side 2)", isOn: $faktura.medTakkebrev)
+            } footer: {
+                Text("Et personlig takkebrev som følger med fakturaen. Fint etter første oppdrag for en ny kunde. Teksten endrer du i Firmaopplysninger.")
+            }
         }
 
         Section {
@@ -672,11 +677,20 @@ struct FakturaForhandsvisning: View {
     var body: some View {
         HStack {
             Spacer(minLength: 0)
-            FakturaSide(faktura: faktura)
-                .scaleEffect(skala, anchor: .topLeading)
-                .frame(width: FakturaSide.a4.width * skala, height: FakturaSide.a4.height * skala, alignment: .topLeading)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-                .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
+            VStack(spacing: 16) {
+                FakturaSide(faktura: faktura)
+                    .scaleEffect(skala, anchor: .topLeading)
+                    .frame(width: FakturaSide.a4.width * skala, height: FakturaSide.a4.height * skala, alignment: .topLeading)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
+                if faktura.harTakkebrev {
+                    TakkebrevSide(faktura: faktura)
+                        .scaleEffect(skala, anchor: .topLeading)
+                        .frame(width: FakturaSide.a4.width * skala, height: FakturaSide.a4.height * skala, alignment: .topLeading)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
+                }
+            }
             Spacer(minLength: 0)
         }
         .listRowBackground(Color.clear)
@@ -864,6 +878,7 @@ struct FirmaView: View {
     @AppStorage(Firma.epost) private var epost = Firma.standardEpost
     @AppStorage(Firma.betalingsfrist) private var betalingsfrist = 14
     @AppStorage(Firma.startnummer) private var startnummer = 1
+    @AppStorage(Firma.takketekst) private var takketekst = Firma.standardTakketekst
 
     @Query private var fakturaer: [Faktura]
 
@@ -909,6 +924,18 @@ struct FirmaView: View {
                 Text(harSendtFaktura
                      ? "Fakturanummerene fortsetter der du slapp."
                      : "Har du sendt fakturaer fra et annet program før, starter du på neste nummer etter det siste du brukte.")
+            }
+
+            Section {
+                TextField("Takkebrev", text: $takketekst, axis: .vertical)
+                    .lineLimit(6...20)
+                if takketekst != Firma.standardTakketekst {
+                    Button("Bruk standardteksten igjen") { takketekst = Firma.standardTakketekst }
+                }
+            } header: {
+                Text("Takkebrev")
+            } footer: {
+                Text("Følger med som side 2 når du krysser av for takkebrev på en faktura. {kunde} byttes ut med kundens navn og {firma} med navnet på foretaket. Hilsenen med navnet ditt legges til automatisk.")
             }
         }
         .tastaturFerdigKnapp()

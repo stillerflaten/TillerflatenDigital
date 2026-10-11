@@ -64,6 +64,9 @@ final class Faktura {
 
     /// Purringer: hvor mange som er sendt, når den siste ble sendt, og den nye fristen.
     var antallPurringer: Int = 0
+    /// Legg ved et takkebrev som side 2. Teksten låses når fakturaen ferdigstilles.
+    var medTakkebrev: Bool = false
+    var takketekst: String = ""
     var purreDato: Date? = nil
     var purreFrist: Date? = nil
 
@@ -90,6 +93,17 @@ final class Faktura {
 
     var erForfalt: Bool {
         status == .sendt && !erKreditnota && Frister.kalender.startOfDay(for: forfallsdato) < Frister.kalender.startOfDay(for: .now)
+    }
+
+    /// Om PDF-en skal ha takkebrevet som side 2.
+    var harTakkebrev: Bool { medTakkebrev && !erKreditnota }
+
+    /// Takkebrevet med kundens og foretakets navn satt inn. Et utkast bruker teksten fra Firmaopplysninger nå.
+    var ferdigTakketekst: String {
+        let tekst = nummer == 0 ? Firma.lagretTakketekst : takketekst
+        return tekst
+            .replacingOccurrences(of: "{kunde}", with: kundeNavn.trimmet.isEmpty ? "deg" : kundeNavn.trimmet)
+            .replacingOccurrences(of: "{firma}", with: nummer == 0 ? Firma.lagretNavn : selgerNavn)
     }
 
     /// Fristen kunden må betale innen nå: fristen i siste purring, ellers forfallsdatoen.
@@ -146,6 +160,7 @@ enum Firma {
     static let epost = "firma.epost"
     static let betalingsfrist = "firma.betalingsfrist"
     static let startnummer = "faktura.startnummer"
+    static let takketekst = "firma.takketekst"
 
     static let standardNavn = "Tillerflaten Digital"
     static let standardEpost = "post@tillerflatendigital.no"
@@ -156,6 +171,21 @@ enum Firma {
     static var lagretEpost: String { d.string(forKey: epost) ?? standardEpost }
     static var lagretBetalingsfrist: Int { d.object(forKey: betalingsfrist) as? Int ?? 14 }
     static var lagretStartnummer: Int { d.object(forKey: startnummer) as? Int ?? 1 }
+    static var lagretTakketekst: String {
+        let t = d.string(forKey: takketekst) ?? ""
+        return t.trimmet.isEmpty ? standardTakketekst : t
+    }
+
+    /// {kunde} og {firma} byttes ut med kundens og foretakets navn.
+    static let standardTakketekst = """
+    Tusen takk for at du valgte {firma}!
+
+    Jeg setter veldig stor pris på tilliten du har vist meg, og håper du blir riktig godt fornøyd med det vi har laget sammen.
+
+    Har du nye ideer du vil lufte, eller trenger du hjelp til å følge opp og videreutvikle det jeg har laget, er det bare å ta kontakt. Jeg stiller gjerne opp, enten det gjelder en liten justering eller noe helt nytt.
+
+    Jeg ser fram til å høre fra deg igjen.
+    """
 
     /// Det som mangler før du kan sende en faktura.
     static var mangler: [String] {
@@ -179,6 +209,16 @@ enum Fakturering {
     static func nesteNummer(_ context: ModelContext) -> Int {
         let alle = (try? context.fetch(FetchDescriptor<Faktura>())) ?? []
         return nesteNummer(brukte: alle.map(\.nummer).filter { $0 > 0 }, startnummer: Firma.lagretStartnummer)
+    }
+
+    /// Et tomt fakturautkast med dagens dato, betalingsfrist og mva etter innstillingene.
+    @MainActor
+    static func nyttUtkast(context: ModelContext) -> Faktura {
+        let f = Faktura()
+        f.forfallsdato = Calendar.current.date(byAdding: .day, value: Firma.lagretBetalingsfrist, to: f.fakturadato) ?? f.fakturadato
+        f.mvaSats = UserDefaults.standard.bool(forKey: Innstilling.mvaRegistrert) ? 0.25 : 0
+        context.insert(f)
+        return f
     }
 
     /// Hva som mangler på selve fakturaen før den kan ferdigstilles.
@@ -207,6 +247,7 @@ enum Fakturering {
         faktura.selgerOrgnr = d.string(forKey: Firma.orgnr) ?? ""
         faktura.selgerKontonr = d.string(forKey: Firma.kontonr) ?? ""
         faktura.selgerEpost = Firma.lagretEpost
+        faktura.takketekst = faktura.harTakkebrev ? Firma.lagretTakketekst : ""
         if !faktura.erKreditnota {
             faktura.mvaSats = mvaRegistrert ? 0.25 : 0
         }
