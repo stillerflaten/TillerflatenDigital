@@ -52,10 +52,20 @@ struct InnstillingerView: View {
                             if paa && mvaFra == 0 { mvaFra = Frister.kalender.startOfDay(for: .now).timeIntervalSince1970 }
                         }
                     if mvaRegistrert {
-                        DatePicker("Registrert fra", selection: Binding(
-                            get: { mvaFra > 0 ? Date(timeIntervalSince1970: mvaFra) : .now },
-                            set: { mvaFra = $0.timeIntervalSince1970 }
-                        ), displayedComponents: .date)
+                        if mvaFra > 0 {
+                            DatePicker("Registrert fra", selection: Binding(
+                                get: { Date(timeIntervalSince1970: mvaFra) },
+                                set: { mvaFra = $0.timeIntervalSince1970 }
+                            ), displayedComponents: .date)
+                        } else {
+                            HStack {
+                                Text("Registrert fra")
+                                Spacer()
+                                Button("Velg dato") {
+                                    mvaFra = Frister.kalender.startOfDay(for: .now).timeIntervalSince1970
+                                }
+                            }
+                        }
                         Toggle("Årstermin (én mva-melding i året)", isOn: $mvaAarstermin)
                     }
                 } header: {

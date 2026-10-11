@@ -191,6 +191,9 @@ struct BilagSkjemaView: View {
                 BelopFelt("Beløp inkl. mva", belop: $bilag.belop)
                 if mvaRegistrert {
                     Toggle("Kjøpt fra utlandet uten norsk mva", isOn: $bilag.fraUtlandet)
+                        .onChange(of: bilag.fraUtlandet) { _, ja in
+                            if ja { bilag.mva = 0 }
+                        }
                     if !bilag.fraUtlandet {
                         BelopFelt("Herav mva", belop: $bilag.mva)
                         Button("Regn ut 25 % mva") {

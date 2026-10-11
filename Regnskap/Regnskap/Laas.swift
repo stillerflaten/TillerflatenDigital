@@ -8,7 +8,7 @@ import LocalAuthentication
 enum Laas {
     static var erPaa: Bool { UserDefaults.standard.bool(forKey: Innstilling.laas) }
 
-    private static var vindu: UIWindow?
+    private static var vinduer: [UIWindow] = []
     private static var skalSporre = true
     private static var sporNaa = false
 
@@ -38,7 +38,7 @@ enum Laas {
     /// Kalles når appen blir aktiv. Spør bare én gang per gang appen åpnes,
     /// så du ikke får Face ID-spørsmålet om og om igjen hvis du avbryter.
     static func appenErAktiv() {
-        guard erPaa else { skjul(); return }
+        guard erPaa, stottes else { skjul(); return }
         guard skalSporre else { return }
         skalSporre = false
         visLaaseskjerm()
@@ -50,30 +50,35 @@ enum Laas {
         sporNaa = true
         let ctx = LAContext()
         ctx.localizedCancelTitle = "Avbryt"
-        ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Lås opp regnskapet") { ok, _ in
+        ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Lås opp regnskapet") { ok, feil in
+            // Har enheten ikke lenger kode, kan den ikke låses opp. Da slipper vi deg inn i stedet for å stenge deg ute.
+            let ingenKode = (feil as? LAError)?.code == .passcodeNotSet
             Task { @MainActor in
                 sporNaa = false
-                if ok { skjul() }
+                if ok || ingenKode { skjul() }
             }
         }
     }
 
+    /// Legger låseskjermen over hvert vindu appen har åpent (iPad og Mac kan ha flere).
     private static func visLaaseskjerm() {
-        guard vindu == nil else { return }
-        let scener = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        guard let scene = scener.first(where: { $0.activationState == .foregroundActive })
-                ?? scener.first(where: { $0.activationState == .foregroundInactive })
-                ?? scener.first else { return }
-        let v = UIWindow(windowScene: scene)
-        v.windowLevel = .alert + 1
-        v.rootViewController = UIHostingController(rootView: LaaseskjermView())
-        v.makeKeyAndVisible()
-        vindu = v
+        guard vinduer.isEmpty else { return }
+        for scene in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }) {
+            let v = UIWindow(windowScene: scene)
+            v.windowLevel = .alert + 1
+            v.rootViewController = UIHostingController(rootView: LaaseskjermView())
+            v.makeKeyAndVisible()
+            vinduer.append(v)
+        }
     }
 
     private static func skjul() {
-        vindu?.isHidden = true
-        vindu = nil
+        for v in vinduer { v.isHidden = true }
+        vinduer = []
+        // Gi tastaturet og fokuset tilbake til appens egne vinduer.
+        for scene in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }) {
+            scene.windows.first { $0.windowLevel == .normal }?.makeKey()
+        }
     }
 }
 

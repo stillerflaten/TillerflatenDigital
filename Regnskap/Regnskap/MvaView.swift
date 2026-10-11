@@ -109,7 +109,8 @@ struct MvaMeldingView: View {
         .temaBakgrunn()
         .navigationTitle("Mva-melding")
         .onAppear {
-            if !valg.contains(termin) { termin = valg.first ?? Mva.Termin.gjeldende(aarstermin: aarstermin) }
+            // Start på siste avsluttede termin, den som skal leveres.
+            termin = valg.first { $0.til <= .now } ?? valg.first ?? Mva.Termin.gjeldende(aarstermin: aarstermin)
         }
     }
 }

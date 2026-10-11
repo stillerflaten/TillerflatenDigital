@@ -77,7 +77,8 @@ struct MvaMelding {
         let start = mvaFra.map { max(termin.fra, Frister.kalender.startOfDay(for: $0)) } ?? termin.fra
         func iPerioden(_ d: Date) -> Bool { d >= start && d < termin.til }
 
-        for f in fakturaer where f.nummer > 0 && f.mvaSats > 0 && iPerioden(f.fakturadato) {
+        // Fakturaer med mva telles alltid: mva-en er krevd inn og skal betales videre.
+        for f in fakturaer where f.nummer > 0 && f.mvaSats > 0 && termin.inneholder(f.fakturadato) {
             salgGrunnlag += f.sumEksMva
             salgMva += f.mvaBelop
         }

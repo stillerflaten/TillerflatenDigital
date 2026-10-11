@@ -66,7 +66,7 @@ struct Naeringsspesifikasjon {
                             forklaring: "Utbetalinger fra Apple. Apple holder til i utlandet, så salget er fritatt for norsk mva."))
         }
         if utenMva != 0 {
-            inn.append(Post(konto: mvaRegistrert ? "3100" : "3000", navn: "Salgsinntekt", belop: utenMva,
+            inn.append(Post(konto: "3200", navn: "Salgsinntekt, utenfor avgiftsområdet", belop: utenMva,
                             forklaring: "Fakturaer og annet salg mens du ikke var mva-registrert."))
         }
         inntekter = inn

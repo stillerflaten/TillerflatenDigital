@@ -36,9 +36,10 @@ enum InnstillingSynk {
         })
 
         sky.synchronize()
-        // Første gang på en ny enhet: det som ligger i iCloud, vinner. Det som bare finnes her, sendes opp.
+        // Det som ligger i iCloud, vinner. Ved oppstart sendes bare det iCloud ikke har fra før,
+        // så en enhet med gamle verdier ikke overskriver det du har endret på den andre.
         hentFraSky(nokler.filter { sky.object(forKey: $0) != nil })
-        sendTilSky()
+        sendTilSky(bareNye: true)
     }
 
     private static func hentFraSky(_ endret: [String]) {
@@ -54,12 +55,13 @@ enum InnstillingSynk {
         }
     }
 
-    private static func sendTilSky() {
+    private static func sendTilSky(bareNye: Bool = false) {
         guard !oppdaterer else { return }
         let sky = NSUbiquitousKeyValueStore.default
         let lokalt = UserDefaults.standard
         for nokkel in nokler {
             guard let verdi = lokalt.object(forKey: nokkel) else { continue }
+            if bareNye && sky.object(forKey: nokkel) != nil { continue }
             if !erLike(verdi, sky.object(forKey: nokkel)) {
                 sky.set(verdi, forKey: nokkel)
             }
