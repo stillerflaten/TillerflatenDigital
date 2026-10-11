@@ -17,7 +17,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../styles.css?v=8">
+  <link rel="stylesheet" href="../styles.css?v=9">
+  <script>
+    // Skjul innhold som skal animeres inn, men bare hvis brukeren ikke har bedt om redusert bevegelse.
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.documentElement.classList.add('motion');
+      setTimeout(function () { if (!window.gsap) document.documentElement.classList.remove('motion'); }, 3000);
+    }
+  </script>
 </head>
 <body>
   <header class="topbar">
@@ -275,5 +282,8 @@
   </footer>
 
   <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+  <script src="../motion.js" defer></script>
 </body>
 </html>
