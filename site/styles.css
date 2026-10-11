@@ -381,7 +381,22 @@ a { color: var(--accent); }
   }
 }
 
+.web-shots {
+  display: grid;
+  gap: 16px;
+  max-width: 560px;
+  justify-self: end;
+}
+.web-shots img {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
 @media (max-width: 860px) {
+  .web-shots { justify-self: stretch; }
   .app { grid-template-columns: 1fr; gap: 28px; }
   .shots { justify-self: start; }
 }
