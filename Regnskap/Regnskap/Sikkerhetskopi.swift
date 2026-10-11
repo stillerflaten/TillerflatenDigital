@@ -84,6 +84,7 @@ struct Sikkerhetskopi: Codable {
         var betalingsfrist: Int?
         var startnummer: Int?
         var mvaFra: Double? = nil
+        var takketekst: String? = nil
     }
 
     struct KundeKopi: Codable {
@@ -145,6 +146,8 @@ struct Sikkerhetskopi: Codable {
         var antallPurringer: Int? = nil
         var purreDato: Date? = nil
         var purreFrist: Date? = nil
+        var medTakkebrev: Bool? = nil
+        var takketekst: String? = nil
     }
 
     // MARK: Lage kopi
@@ -184,7 +187,8 @@ struct Sikkerhetskopi: Codable {
             firmaEpost: Firma.lagretEpost,
             betalingsfrist: Firma.lagretBetalingsfrist,
             startnummer: Firma.lagretStartnummer,
-            mvaFra: d.double(forKey: Innstilling.mvaFra))
+            mvaFra: d.double(forKey: Innstilling.mvaFra),
+            takketekst: d.string(forKey: Firma.takketekst))
         kopi.kunder = try context.fetch(FetchDescriptor<Kunde>()).map {
             KundeKopi(uuid: $0.uuid, navn: $0.navn, adresse: $0.adresse, orgnr: $0.orgnr, epost: $0.epost,
                       opprettet: $0.opprettet, notat: $0.notat)
@@ -207,7 +211,8 @@ struct Sikkerhetskopi: Codable {
                                       antall: $0.antall, enhetspris: $0.enhetspris)
                         },
                         kreditererUUID: f.kreditererUUID, kreditererNummer: f.kreditererNummer,
-                        antallPurringer: f.antallPurringer, purreDato: f.purreDato, purreFrist: f.purreFrist)
+                        antallPurringer: f.antallPurringer, purreDato: f.purreDato, purreFrist: f.purreFrist,
+                        medTakkebrev: f.medTakkebrev, takketekst: f.takketekst)
         }
         return kopi
     }
@@ -341,6 +346,8 @@ struct Sikkerhetskopi: Codable {
             f.antallPurringer = k.antallPurringer ?? 0
             f.purreDato = k.purreDato
             f.purreFrist = k.purreFrist
+            f.medTakkebrev = k.medTakkebrev ?? false
+            f.takketekst = k.takketekst ?? ""
             context.insert(f)
             var nye: [FakturaLinje] = []
             for lk in k.linjer {
@@ -383,6 +390,7 @@ struct Sikkerhetskopi: Codable {
             d.set(inn.firmaEpost, forKey: Firma.epost)
             if let frist = inn.betalingsfrist { d.set(frist, forKey: Firma.betalingsfrist) }
             if let start = inn.startnummer { d.set(start, forKey: Firma.startnummer) }
+            if let takk = inn.takketekst { d.set(takk, forKey: Firma.takketekst) }
         }
 
         // Innstillinger hentes bare inn hvis lønnen ikke er fylt ut (typisk på en ny telefon).

@@ -287,21 +287,101 @@ struct FakturaSide: View {
     }
 }
 
+/// Side 2: et personlig takkebrev til kunden.
+struct TakkebrevSide: View {
+    let faktura: Faktura
+
+    private let svart = Color(red: 0.11, green: 0.13, blue: 0.15)
+    private let graa = Color(red: 0.42, green: 0.45, blue: 0.48)
+    private let linje = Color(red: 0.86, green: 0.87, blue: 0.88)
+    private let petrol = Color(red: 0.09, green: 0.20, blue: 0.23)
+    private let fjell = Color(red: 0.55, green: 0.78, blue: 0.81)
+
+    private var erUtkast: Bool { faktura.nummer == 0 }
+    private func firma(_ lagret: String, _ nokkel: String, standard: String = "") -> String {
+        erUtkast ? (UserDefaults.standard.string(forKey: nokkel) ?? standard) : lagret
+    }
+    private var navn: String { firma(faktura.selgerNavn, Firma.navn, standard: Firma.standardNavn) }
+    private var eier: String { firma(faktura.selgerEier, Firma.eier) }
+    private var epost: String { firma(faktura.selgerEpost, Firma.epost, standard: Firma.standardEpost) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Logomerke()
+                    .fill(fjell)
+                    .frame(width: 30, height: 30)
+                Text(navn)
+                    .font(.system(size: 20, weight: .semibold, design: .serif))
+                Spacer()
+            }
+            .foregroundStyle(Color.white)
+            .padding(.horizontal, 44)
+            .padding(.vertical, 26)
+            .background(petrol)
+
+            VStack(alignment: .leading, spacing: 18) {
+                Text("Tusen takk!")
+                    .font(.system(size: 30, weight: .semibold, design: .serif))
+                    .foregroundStyle(petrol)
+                    .padding(.top, 50)
+
+                Text(faktura.ferdigTakketekst)
+                    .font(.system(size: 12.5))
+                    .lineSpacing(5)
+                    .foregroundStyle(svart)
+                    // Blir teksten lang, krymper den litt så alt får plass på én side.
+                    .minimumScaleFactor(0.6)
+                    .layoutPriority(1)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Med vennlig hilsen")
+                    Text(eier.isEmpty ? navn : eier)
+                        .font(.system(size: 15, weight: .semibold, design: .serif))
+                        .padding(.top, 14)
+                    if !eier.isEmpty { Text(navn).foregroundStyle(graa) }
+                    if !epost.isEmpty { Text(epost).foregroundStyle(graa) }
+                }
+                .font(.system(size: 12.5))
+                .foregroundStyle(svart)
+                .padding(.top, 10)
+
+                Spacer(minLength: 0)
+
+                Rectangle().fill(linje).frame(height: 0.5)
+                Text(faktura.nummer > 0 ? "Vedlegg til faktura nr. \(faktura.nummer)" : "Vedlegg til fakturaen")
+                    .font(.system(size: 8))
+                    .foregroundStyle(graa)
+            }
+            .padding(.horizontal, 64)
+            .padding(.bottom, 30)
+        }
+        .frame(width: FakturaSide.a4.width, height: FakturaSide.a4.height, alignment: .topLeading)
+        .background(Color.white)
+        .environment(\.colorScheme, .light)
+    }
+}
+
 enum FakturaPDF {
     /// Lager PDF-en for fakturaen.
     @MainActor
     static func data(for faktura: Faktura, purring: FakturaSide.Purring? = nil) -> Data {
-        let renderer = ImageRenderer(content: FakturaSide(faktura: faktura, purring: purring))
-        let data = NSMutableData()
-        renderer.render { _, tegn in
-            var boks = CGRect(origin: .zero, size: FakturaSide.a4)
-            guard let forbruker = CGDataConsumer(data: data as CFMutableData),
-                  let ctx = CGContext(consumer: forbruker, mediaBox: &boks, nil) else { return }
-            ctx.beginPDFPage(nil)
-            tegn(ctx)
-            ctx.endPDFPage()
-            ctx.closePDF()
+        var sider: [AnyView] = [AnyView(FakturaSide(faktura: faktura, purring: purring))]
+        if purring == nil && faktura.harTakkebrev {
+            sider.append(AnyView(TakkebrevSide(faktura: faktura)))
         }
+        let data = NSMutableData()
+        var boks = CGRect(origin: .zero, size: FakturaSide.a4)
+        guard let forbruker = CGDataConsumer(data: data as CFMutableData),
+              let ctx = CGContext(consumer: forbruker, mediaBox: &boks, nil) else { return Data() }
+        for side in sider {
+            ImageRenderer(content: side).render { _, tegn in
+                ctx.beginPDFPage(nil)
+                tegn(ctx)
+                ctx.endPDFPage()
+            }
+        }
+        ctx.closePDF()
         return data as Data
     }
 

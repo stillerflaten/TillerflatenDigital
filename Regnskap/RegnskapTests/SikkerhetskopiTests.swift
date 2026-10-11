@@ -203,4 +203,32 @@ struct SikkerhetskopiTests {
         #expect(n.kostnader.contains { $0.konto == "6552" && $0.belop == 1_000 })
         #expect(n.kostnader.contains { $0.konto == "6900" && $0.belop == 2_000 })
     }
+
+    // MARK: Takkebrev
+
+    @Test func takkebrevetLaasesVedFerdigstilling() throws {
+        let db = try nyDatabase()
+        let f = Faktura()
+        db.insert(f)
+        f.medTakkebrev = true
+        f.kundeNavn = "Trines Hundesalong"
+        Fakturering.ferdigstill(f, kunde: nil, mvaRegistrert: false, context: db)
+        #expect(!f.takketekst.isEmpty)
+        #expect(f.harTakkebrev)
+
+        f.takketekst = "Takk, {kunde}! Hilsen {firma}"
+        f.selgerNavn = "Tillerflaten Digital"
+        #expect(f.ferdigTakketekst == "Takk, Trines Hundesalong! Hilsen Tillerflaten Digital")
+    }
+
+    @Test func kreditnotaFaarIkkeTakkebrev() throws {
+        let db = try nyDatabase()
+        let f = sendtFaktura(db, belop: 1_000)
+        f.medTakkebrev = true
+        let k = Fakturering.lagKreditnota(for: f, context: db)
+        k.medTakkebrev = true
+        Fakturering.ferdigstill(k, kunde: nil, mvaRegistrert: false, context: db)
+        #expect(!k.harTakkebrev)
+        #expect(k.takketekst.isEmpty)
+    }
 }

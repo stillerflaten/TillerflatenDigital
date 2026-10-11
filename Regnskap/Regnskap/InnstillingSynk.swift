@@ -10,7 +10,7 @@ enum InnstillingSynk {
         Innstilling.lonn, Innstilling.mvaRegistrert, Innstilling.mvaAarstermin, Innstilling.mvaFra,
         Innstilling.forskuddsskatt, Innstilling.hjemmekontor,
         Firma.navn, Firma.eier, Firma.adresse, Firma.orgnr, Firma.kontonr, Firma.epost,
-        Firma.betalingsfrist, Firma.startnummer,
+        Firma.betalingsfrist, Firma.startnummer, Firma.takketekst,
         "sjekkliste.ferdig",
     ]
 
