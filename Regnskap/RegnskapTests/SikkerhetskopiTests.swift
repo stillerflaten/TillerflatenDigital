@@ -413,4 +413,23 @@ struct SikkerhetskopiTests {
         #expect(Avtaler.passer(a, sok: "LISENS"))
         #expect(!Avtaler.passer(a, sok: "driftsavtale"))
     }
+
+    // MARK: Årsrapport
+
+    @Test func aarsrapportBlirPdfMedFlereSider() throws {
+        let db = try nyDatabase()
+        var bilag: [Bilag] = []
+        for i in 0..<120 {
+            let b = Bilag(dato: dato(2026, 3, 1 + i % 28), tittel: "Kvittering \(i)", belop: 100, kategori: .programvare)
+            db.insert(b)
+            bilag.append(b)
+        }
+        let inntekt = Inntekt(dato: dato(2026, 5, 2), belop: 8_000, kilde: "Faktura")
+        db.insert(inntekt)
+        let pdf = Aarsrapport.data(.init(aar: 2026, bilag: bilag, inntekter: [inntekt], driftsmidler: [], turer: [],
+                                         fakturaer: [], lonn: 600_000, mvaRegistrert: false, hjemmekontor: false))
+        #expect(pdf.starts(with: Data("%PDF".utf8)))
+        let dokument = try #require(CGPDFDocument(CGDataProvider(data: pdf as CFData)!))
+        #expect(dokument.numberOfPages >= 3)
+    }
 }
