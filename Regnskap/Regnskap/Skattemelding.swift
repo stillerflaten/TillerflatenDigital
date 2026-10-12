@@ -79,7 +79,7 @@ struct Naeringsspesifikasjon {
         var kost: [Post] = []
         if o.avskrivninger > 0 {
             kost.append(Post(konto: "6000", navn: "Avskrivning på varige driftsmidler", belop: o.avskrivninger,
-                             forklaring: "Fra Oversikt → Kalkulatorer → Avskrivning. Saldoskjemaet fylles ut i næringsspesifikasjonen."))
+                             forklaring: "Fra Kalkulatorer → Avskrivning. Saldoskjemaet fylles ut i næringsspesifikasjonen."))
         }
         for kategori in Utgiftskategori.allCases where kategori != .driftsmiddel {
             guard let belop = perKategori[kategori], belop != 0 else { continue }
@@ -123,7 +123,7 @@ struct SkattemeldingView: View {
 
             if n.manglerAvskrivning {
                 Section {
-                    Label("Du har bilag som skal avskrives, men ikke noe utstyr under Oversikt → Kalkulatorer → Avskrivning for \(String(aar)). Legg det inn der, ellers mangler fradraget.", systemImage: "exclamationmark.triangle")
+                    Label("Du har bilag som skal avskrives, men ikke noe utstyr under Kalkulatorer → Avskrivning for \(String(aar)). Legg det inn der, ellers mangler fradraget.", systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.orange)
                 }
             }

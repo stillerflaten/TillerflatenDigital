@@ -41,7 +41,7 @@ enum Utgiftskategori: String, CaseIterable, Identifiable, Codable {
     var hjelpetekst: String? {
         switch self {
         case .programvare: "F.eks. Apple Developer Program, Claude, GitHub, domene og webhotell."
-        case .driftsmiddel: "Trekkes ikke fra med en gang. Legg også utstyret inn under Oversikt → Kalkulatorer → Avskrivning, så regner appen ut årets fradrag."
+        case .driftsmiddel: "Trekkes ikke fra med en gang. Legg også utstyret inn under Kalkulatorer → Avskrivning, så regner appen ut årets fradrag."
         case .telefonInternett: "Brukes det også privat? Sett næringsandelen til det du faktisk bruker i foretaket."
         default: nil
         }

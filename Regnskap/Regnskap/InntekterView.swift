@@ -152,7 +152,7 @@ struct InntektSkjemaView: View {
                 Section {
                     RadVerdi("Sett av til skatt (ca.)", (inntekt.belop * skatt.marginalsats).kr, uthevet: true)
                 } footer: {
-                    Text("Grovt anslag: \(skatt.marginalsats.prosent) av utbetalingen, ut fra lønnen din. Fradrag for utgifter gjør den faktiske skatten lavere. Se Oversikt → Kalkulatorer → Skatt for hele året.")
+                    Text("Grovt anslag: \(skatt.marginalsats.prosent) av utbetalingen, ut fra lønnen din. Fradrag for utgifter gjør den faktiske skatten lavere. Se Kalkulatorer → Skatt for hele året.")
                 }
             }
         }
