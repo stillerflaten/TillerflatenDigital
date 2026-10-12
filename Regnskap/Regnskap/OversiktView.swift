@@ -196,6 +196,13 @@ struct OversiktView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        rapport = Brukermanual.url
+                    } label: {
+                        Label("Brukermanual", systemImage: "questionmark.circle")
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
                         visInnstillinger = true
                     } label: {
                         Label("Innstillinger", systemImage: "gearshape")
