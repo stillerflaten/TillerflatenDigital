@@ -17,6 +17,7 @@ struct Sikkerhetskopi: Codable {
     var fakturaer: [FakturaKopi]?
     var fasteUtgifter: [FastUtgiftKopi]?
     var prosjekter: [ProsjektKopi]? = nil
+    var avtaler: [AvtaleKopi]? = nil
 
     struct VedleggKopi: Codable {
         var uuid: UUID
@@ -133,6 +134,20 @@ struct Sikkerhetskopi: Codable {
         var foringer: [TimeforingKopi]
     }
 
+    struct AvtaleKopi: Codable {
+        var uuid: UUID
+        var navn: String
+        var kundeUUID: UUID?
+        var kundeNavn: String
+        var belop: Double
+        var intervallRaw: String
+        var nestePeriodeFra: Date
+        var dagerFor: Int
+        var aktiv: Bool
+        var notat: String
+        var opprettet: Date
+    }
+
     struct LinjeKopi: Codable {
         var uuid: UUID
         var nr: Int
@@ -236,6 +251,11 @@ struct Sikkerhetskopi: Codable {
                         kreditererUUID: f.kreditererUUID, kreditererNummer: f.kreditererNummer,
                         antallPurringer: f.antallPurringer, purreDato: f.purreDato, purreFrist: f.purreFrist,
                         medTakkebrev: f.medTakkebrev, takketekst: f.takketekst)
+        }
+        kopi.avtaler = try context.fetch(FetchDescriptor<Avtale>()).map {
+            AvtaleKopi(uuid: $0.uuid, navn: $0.navn, kundeUUID: $0.kundeUUID, kundeNavn: $0.kundeNavn, belop: $0.belop,
+                       intervallRaw: $0.intervallRaw, nestePeriodeFra: $0.nestePeriodeFra, dagerFor: $0.dagerFor,
+                       aktiv: $0.aktiv, notat: $0.notat, opprettet: $0.opprettet)
         }
         kopi.prosjekter = try context.fetch(FetchDescriptor<Prosjekt>()).map { p in
             ProsjektKopi(uuid: p.uuid, navn: p.navn, kundeUUID: p.kundeUUID, kundeNavn: p.kundeNavn,
@@ -407,6 +427,25 @@ struct Sikkerhetskopi: Codable {
             u.fraUtlandet = k.fraUtlandet ?? false
             context.insert(u)
             Varsler.planleggFastUtgift(u)
+            resultat.lagtTil += 1
+        }
+
+        let finnesAvtale = Set(try context.fetch(FetchDescriptor<Avtale>()).map(\.uuid))
+        for k in avtaler ?? [] {
+            guard !finnesAvtale.contains(k.uuid) else { resultat.hoppetOver += 1; continue }
+            let a = Avtale(navn: k.navn)
+            a.uuid = k.uuid
+            a.kundeUUID = k.kundeUUID
+            a.kundeNavn = k.kundeNavn
+            a.belop = k.belop
+            a.intervallRaw = k.intervallRaw
+            a.nestePeriodeFra = k.nestePeriodeFra
+            a.dagerFor = k.dagerFor
+            a.aktiv = k.aktiv
+            a.notat = k.notat
+            a.opprettet = k.opprettet
+            context.insert(a)
+            Varsler.planleggAvtale(a)
             resultat.lagtTil += 1
         }
 

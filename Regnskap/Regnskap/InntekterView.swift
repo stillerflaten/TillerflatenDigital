@@ -6,6 +6,7 @@ struct InntekterView: View {
     @Query(sort: \Inntekt.dato, order: .reverse) private var inntekter: [Inntekt]
 
     @Query private var fakturaer: [Faktura]
+    @Query private var avtaler: [Avtale]
     @State private var visNy = false
 
     private var ubetalteFakturaer: [Faktura] { fakturaer.filter { $0.status == .sendt } }
@@ -38,8 +39,22 @@ struct InntekterView: View {
                     } label: {
                         Label("Timer og prosjekter", systemImage: "clock")
                     }
+                    NavigationLink {
+                        AvtaleListeView()
+                    } label: {
+                        HStack {
+                            Label("Avtaler", systemImage: "arrow.triangle.2.circlepath")
+                            Spacer()
+                            let klare = avtaler.filter(\.skalFaktureres).count
+                            if klare > 0 {
+                                Text("\(klare) skal faktureres")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(Color.orange)
+                            }
+                        }
+                    }
                 } footer: {
-                    Text("Lag faktura til kunder, og før timene du bruker på hvert oppdrag. Når kunden har betalt, havner beløpet her av seg selv.")
+                    Text("Lag faktura til kunder, før timene du bruker på hvert oppdrag, og hold styr på lisenser og andre faste avtaler. Når kunden har betalt, havner beløpet her av seg selv.")
                 }
 
                 if inntekter.isEmpty {
