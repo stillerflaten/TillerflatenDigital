@@ -399,4 +399,18 @@ struct SikkerhetskopiTests {
         let pdf = Dokumenter.pdf(av: [side, side])
         #expect(pdf.starts(with: Data("%PDF".utf8)))
     }
+
+    @Test func sokFinnerAvtaleEtterKundeOgDokument() throws {
+        let db = try nyDatabase()
+        let a = Avtale(navn: "Lisens og support")
+        a.kundeNavn = "Trøndelag Politis tjenestehundklubb"
+        db.insert(a)
+        let d = Dokument(navn: "Signert avtale 2026", filtype: "pdf", data: Data([1]))
+        db.insert(d)
+        a.dokumenter = [d]
+        #expect(Avtaler.passer(a, sok: "tjenestehund"))
+        #expect(Avtaler.passer(a, sok: "signert"))
+        #expect(Avtaler.passer(a, sok: "LISENS"))
+        #expect(!Avtaler.passer(a, sok: "driftsavtale"))
+    }
 }
