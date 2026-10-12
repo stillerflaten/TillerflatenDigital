@@ -20,6 +20,8 @@ final class Avtale {
     var aktiv: Bool = true
     var notat: String = ""
     var opprettet: Date = Date.now
+    /// Selve avtalen eller kontrakten, som PDF eller bilde.
+    @Relationship(deleteRule: .cascade, inverse: \Dokument.avtale) var dokumenter: [Dokument]? = []
 
     init(navn: String = "") {
         self.navn = navn
@@ -48,6 +50,14 @@ final class Avtale {
 }
 
 enum Avtaler {
+    /// Om avtalen passer søketeksten: navn, kunde, notat eller navnet på et dokument.
+    static func passer(_ avtale: Avtale, sok: String) -> Bool {
+        let tekst = sok.trimmet
+        guard !tekst.isEmpty else { return true }
+        let felt = [avtale.navn, avtale.kundeNavn, avtale.notat] + (avtale.dokumenter ?? []).map(\.navn)
+        return felt.contains { $0.localizedCaseInsensitiveContains(tekst) }
+    }
+
     /// Siste dag i en periode som starter `fra`.
     static func periodeTil(fra: Date, intervall: Trekkintervall) -> Date {
         let kal = Frister.kalender
@@ -99,10 +109,17 @@ struct AvtaleListeView: View {
     @State private var visNy = false
     @State private var nyFaktura: Faktura?
     @State private var endre: Avtale?
+    @State private var sok = ""
 
-    private var klare: [Avtale] { avtaler.filter(\.skalFaktureres) }
-    private var kommende: [Avtale] { avtaler.filter { $0.aktiv && !$0.skalFaktureres } }
-    private var avsluttet: [Avtale] { avtaler.filter { !$0.aktiv } }
+    /// Avtaler som passer søket, sortert etter når de skal faktureres.
+    private var treff: [Avtale] {
+        avtaler
+            .filter { sok.isEmpty || Avtaler.passer($0, sok: sok) }
+            .sorted { $0.nesteFakturadato < $1.nesteFakturadato }
+    }
+    private var klare: [Avtale] { treff.filter(\.skalFaktureres) }
+    private var kommende: [Avtale] { treff.filter { $0.aktiv && !$0.skalFaktureres } }
+    private var avsluttet: [Avtale] { treff.filter { !$0.aktiv }.sorted { $0.opprettet > $1.opprettet } }
 
     var body: some View {
         List {
@@ -115,6 +132,8 @@ struct AvtaleListeView: View {
                     Button("Legg inn den første") { visNy = true }
                         .buttonStyle(.borderedProminent)
                 }
+            } else if treff.isEmpty {
+                ContentUnavailableView.search(text: sok)
             }
 
             if !klare.isEmpty {
@@ -155,6 +174,7 @@ struct AvtaleListeView: View {
         }
         .temaBakgrunn()
         .navigationTitle("Avtaler")
+        .searchable(text: $sok, prompt: "Søk i avtaler")
         .navigationDestination(item: $nyFaktura) { FakturaView(faktura: $0) }
         .toolbar {
             Button {
@@ -295,7 +315,16 @@ struct AvtaleSkjemaView: View {
                     .lineLimit(2...8)
             }
 
-            if !erNy {
+            if erNy {
+                Section {
+                } footer: {
+                    Text("Når avtalen er lagret, kan du legge ved selve kontrakten.")
+                }
+            } else {
+                DokumentSeksjon(dokumenter: avtale.dokumenter ?? [], forklaring: "Legg ved den signerte avtalen eller kontrakten.",
+                                leggTil: { avtale.dokumenter = (avtale.dokumenter ?? []) + [$0] },
+                                fjern: { d in avtale.dokumenter?.removeAll { $0 == d } })
+
                 Section {
                     Toggle("Aktiv", isOn: $avtale.aktiv)
                 } footer: {
@@ -317,7 +346,7 @@ struct AvtaleSkjemaView: View {
                                 }
                             }
                         } message: {
-                            Text("Fakturaer du har laget fra avtalen, blir ikke berørt.")
+                            Text("Dokumentene på avtalen slettes også. Fakturaer du har laget fra avtalen, blir ikke berørt.")
                         }
                 }
             }

@@ -44,6 +44,11 @@ struct ContentView: View {
             Tab("Inntekter", systemImage: "banknote") {
                 InntekterView()
             }
+            Tab("Avtaler", systemImage: "signature") {
+                NavigationStack {
+                    AvtaleListeView()
+                }
+            }
             Tab("Kalkulatorer", systemImage: "function") {
                 KalkulatorerView()
             }

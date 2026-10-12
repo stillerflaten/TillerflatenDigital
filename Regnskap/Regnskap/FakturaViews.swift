@@ -826,6 +826,10 @@ struct KundeSkjemaView: View {
             }
 
             if !erNy {
+                DokumentSeksjon(dokumenter: kunde.dokumenter ?? [], forklaring: "F.eks. avtaler uten fast fakturering, tilbud eller databehandleravtale.",
+                                leggTil: { kunde.dokumenter = (kunde.dokumenter ?? []) + [$0] },
+                                fjern: { d in kunde.dokumenter?.removeAll { $0 == d } })
+
                 Section {
                     Button("Slett kunden", role: .destructive) { bekreftSlett = true }
                         .confirmationDialog("Slette \(kunde.navn)?", isPresented: $bekreftSlett, titleVisibility: .visible) {
@@ -840,7 +844,7 @@ struct KundeSkjemaView: View {
                                 }
                             }
                         } message: {
-                            Text("Fakturaer du har laget til kunden, blir ikke berørt.")
+                            Text("Dokumentene på kunden slettes også. Fakturaer du har laget til kunden, blir ikke berørt.")
                         }
                 }
             }
