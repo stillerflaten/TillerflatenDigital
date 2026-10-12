@@ -1,3 +1,4 @@
+import SwiftUI
 import UIKit
 
 /// Regnskapet for ett år som PDF: sammendrag, tall til skattemeldingen og lister over alt som er ført.
@@ -43,8 +44,8 @@ enum Aarsrapport {
 
         return PDFSkriver.lag(bunntekst: "\(firma) · Regnskap \(g.aar)") { s in
             // Topp
-            s.tekst("Regnskap \(g.aar)", font: .systemFont(ofSize: 22, weight: .bold))
-            s.tekst([firma, eier, orgnr.isEmpty ? "" : "Org.nr. \(orgnr)"].filter { !$0.isEmpty }.joined(separator: " · "),
+            s.logotopp(firma: firma, tittel: "REGNSKAP", undertittel: String(g.aar))
+            s.tekst([eier, orgnr.isEmpty ? "" : "Org.nr. \(orgnr)"].filter { !$0.isEmpty }.joined(separator: " · "),
                     font: .systemFont(ofSize: 10), farge: PDFSkriver.graa)
             s.tekst("Laget \(dato(.now)). Tallene er hentet fra appen og er et grunnlag, ikke et revidert regnskap.",
                     font: .systemFont(ofSize: 9), farge: PDFSkriver.graa)
@@ -159,6 +160,7 @@ final class PDFSkriver {
     static let graa = UIColor(red: 0.42, green: 0.45, blue: 0.48, alpha: 1)
     static let petrol = UIColor(red: 0.09, green: 0.20, blue: 0.23, alpha: 1)
     static let linje = UIColor(red: 0.86, green: 0.87, blue: 0.88, alpha: 1)
+    static let fjell = UIColor(red: 0.55, green: 0.78, blue: 0.81, alpha: 1)
 
     private let marg: CGFloat = 44
     private let bunn: CGFloat = 50
@@ -213,6 +215,39 @@ final class PDFSkriver {
         (s as NSString).draw(with: CGRect(x: marg, y: y, width: bredde, height: hoyde),
                              options: .usesLineFragmentOrigin, attributes: attr, context: nil)
         y += hoyde + 3
+    }
+
+    /// Mørk topp med logo og firmanavn, som på fakturaene. Brukes øverst på første side.
+    func logotopp(firma: String, tittel: String, undertittel: String) {
+        let hoyde: CGFloat = 82
+        Self.petrol.setFill()
+        UIRectFill(CGRect(x: 0, y: 0, width: Self.side.width, height: hoyde))
+
+        let logo = CGRect(x: marg, y: (hoyde - 30) / 2, width: 30, height: 30)
+        let sti = UIBezierPath(cgPath: Logomerke().path(in: logo).cgPath)
+        Self.fjell.setFill()
+        sti.fill()
+
+        let serif = UIFont.systemFont(ofSize: 20, weight: .semibold).fontDescriptor.withDesign(.serif)
+            .map { UIFont(descriptor: $0, size: 20) } ?? .systemFont(ofSize: 20, weight: .semibold)
+        let navnAttr: [NSAttributedString.Key: Any] = [.font: serif, .foregroundColor: UIColor.white]
+        let navnHoyde = (firma as NSString).size(withAttributes: navnAttr).height
+        (firma as NSString).draw(with: CGRect(x: logo.maxX + 10, y: (hoyde - navnHoyde) / 2,
+                                              width: bredde - 190, height: navnHoyde),
+                                 options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine],
+                                 attributes: navnAttr, context: nil)
+
+        let hoyre = NSMutableParagraphStyle()
+        hoyre.alignment = .right
+        let tittelAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 18, weight: .bold),
+                                                          .foregroundColor: UIColor.white, .kern: 2,
+                                                          .paragraphStyle: hoyre]
+        let underAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 11, weight: .medium),
+                                                         .foregroundColor: Self.fjell, .paragraphStyle: hoyre]
+        (tittel as NSString).draw(in: CGRect(x: marg, y: 24, width: bredde, height: 22), withAttributes: tittelAttr)
+        (undertittel as NSString).draw(in: CGRect(x: marg, y: 46, width: bredde, height: 14), withAttributes: underAttr)
+
+        y = hoyde + 22
     }
 
     func overskrift(_ s: String) {
