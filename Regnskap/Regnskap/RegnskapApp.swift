@@ -49,9 +49,6 @@ struct ContentView: View {
                     AvtaleListeView()
                 }
             }
-            Tab("Kalkulatorer", systemImage: "function") {
-                KalkulatorerView()
-            }
             Tab("Frister", systemImage: "calendar.badge.clock") {
                 FristerView()
             }

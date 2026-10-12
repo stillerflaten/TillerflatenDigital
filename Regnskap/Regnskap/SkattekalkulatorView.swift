@@ -1,73 +1,72 @@
 import SwiftUI
 import SwiftData
 
+/// Skatt, avskrivning, kjørelogg og annet. Ligger under Oversikt.
 struct KalkulatorerView: View {
     var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    NavigationLink {
-                        SkattekalkulatorView()
-                    } label: {
-                        Label {
-                            VStack(alignment: .leading) {
-                                Text("Skatt på App Store-inntekt")
-                                Text("Hvor mye bør jeg sette av?").font(.caption).foregroundStyle(.secondary)
-                            }
-                        } icon: { Image(systemName: "percent") }
-                    }
-                    NavigationLink {
-                        AvskrivningView()
-                    } label: {
-                        Label {
-                            VStack(alignment: .leading) {
-                                Text("Avskrivning av utstyr")
-                                Text("Hvor mye kan jeg trekke fra for Mac, iPhone osv.?").font(.caption).foregroundStyle(.secondary)
-                            }
-                        } icon: { Image(systemName: "laptopcomputer") }
-                    }
-                    NavigationLink {
-                        KjoreloggView()
-                    } label: {
-                        Label {
-                            VStack(alignment: .leading) {
-                                Text("Kjørelogg")
-                                Text("Fradrag for kjøring med egen bil").font(.caption).foregroundStyle(.secondary)
-                            }
-                        } icon: { Image(systemName: "car") }
-                    }
-                    NavigationLink {
-                        MvaView()
-                    } label: {
-                        Label {
-                            VStack(alignment: .leading) {
-                                Text("Mva")
-                                Text("Grensen, App Store, nettsider og mva-meldingen").font(.caption).foregroundStyle(.secondary)
-                            }
-                        } icon: { Image(systemName: "building.columns") }
-                    }
+        List {
+            Section {
+                NavigationLink {
+                    SkattekalkulatorView()
+                } label: {
+                    Label {
+                        VStack(alignment: .leading) {
+                            Text("Skatt på App Store-inntekt")
+                            Text("Hvor mye bør jeg sette av?").font(.caption).foregroundStyle(.secondary)
+                        }
+                    } icon: { Image(systemName: "percent") }
                 }
-                Section {
-                    NavigationLink {
-                        SkattemeldingView(aar: Date.now.aar - (Frister.kalender.component(.month, from: .now) <= 5 ? 1 : 0))
-                    } label: {
-                        Label {
-                            VStack(alignment: .leading) {
-                                Text("Skattemeldingen")
-                                Text("Tallene til næringsspesifikasjonen").font(.caption).foregroundStyle(.secondary)
-                            }
-                        } icon: { Image(systemName: "doc.text") }
-                    }
-                    NavigationLink {
-                        SjekklisteView()
-                    } label: {
-                        Label("Sjekkliste for nytt enkeltpersonforetak", systemImage: "checklist")
-                    }
+                NavigationLink {
+                    AvskrivningView()
+                } label: {
+                    Label {
+                        VStack(alignment: .leading) {
+                            Text("Avskrivning av utstyr")
+                            Text("Hvor mye kan jeg trekke fra for Mac, iPhone osv.?").font(.caption).foregroundStyle(.secondary)
+                        }
+                    } icon: { Image(systemName: "laptopcomputer") }
+                }
+                NavigationLink {
+                    KjoreloggView()
+                } label: {
+                    Label {
+                        VStack(alignment: .leading) {
+                            Text("Kjørelogg")
+                            Text("Fradrag for kjøring med egen bil").font(.caption).foregroundStyle(.secondary)
+                        }
+                    } icon: { Image(systemName: "car") }
+                }
+                NavigationLink {
+                    MvaView()
+                } label: {
+                    Label {
+                        VStack(alignment: .leading) {
+                            Text("Mva")
+                            Text("Grensen, App Store, nettsider og mva-meldingen").font(.caption).foregroundStyle(.secondary)
+                        }
+                    } icon: { Image(systemName: "building.columns") }
                 }
             }
-            .temaBakgrunn()
-            .navigationTitle("Kalkulatorer")
+            Section {
+                NavigationLink {
+                    SkattemeldingView(aar: Date.now.aar - (Frister.kalender.component(.month, from: .now) <= 5 ? 1 : 0))
+                } label: {
+                    Label {
+                        VStack(alignment: .leading) {
+                            Text("Skattemeldingen")
+                            Text("Tallene til næringsspesifikasjonen").font(.caption).foregroundStyle(.secondary)
+                        }
+                    } icon: { Image(systemName: "doc.text") }
+                }
+                NavigationLink {
+                    SjekklisteView()
+                } label: {
+                    Label("Sjekkliste for nytt enkeltpersonforetak", systemImage: "checklist")
+                }
+            }
         }
+        .temaBakgrunn()
+        .navigationTitle("Kalkulatorer")
     }
 }
 

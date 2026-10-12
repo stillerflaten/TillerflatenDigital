@@ -264,7 +264,7 @@ struct BilagSkjemaView: View {
                     RadVerdi("Fradrag", bilag.fradrag(mvaRegistrert: mvaRegistrert).kr, uthevet: true)
                 } footer: {
                     Text(bilag.kategori == .driftsmiddel
-                         ? "Avskrives over flere år, se Kalkulatorer → Avskrivning."
+                         ? "Avskrives over flere år, se Oversikt → Kalkulatorer → Avskrivning."
                          : "Trekkes fra overskuddet før skatt. Det sparer deg for omtrent en tredjedel av beløpet i skatt.")
                 }
             }

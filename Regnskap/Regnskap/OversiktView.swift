@@ -159,6 +159,11 @@ struct OversiktView: View {
 
                 Section {
                     NavigationLink {
+                        KalkulatorerView()
+                    } label: {
+                        Label("Kalkulatorer", systemImage: "function")
+                    }
+                    NavigationLink {
                         ArkivView()
                     } label: {
                         Label("Arkiv med alle år", systemImage: "archivebox")
@@ -221,9 +226,9 @@ struct MvaGrenseView: View {
             ProgressView(value: andel)
                 .tint(andel >= 1 ? Color.red : andel > 0.8 ? Color.orange : Color.accentColor)
             Text(andel >= 1
-                 ? "Du har passert grensen og skal registrere deg i Merverdiavgiftsregisteret. Se Kalkulatorer → Mva."
+                 ? "Du har passert grensen og skal registrere deg i Merverdiavgiftsregisteret. Se Oversikt → Kalkulatorer → Mva."
                  : andel >= 0.8
-                 ? "Du nærmer deg grensen. Når salget passerer 50 000 kr, må du registrere foretaket for mva, og fakturaene etter det skal ha 25 % mva. Se Kalkulatorer → Mva."
+                 ? "Du nærmer deg grensen. Når salget passerer 50 000 kr, må du registrere foretaket for mva, og fakturaene etter det skal ha 25 % mva. Se Oversikt → Kalkulatorer → Mva."
                  : "Når omsetningen passerer 50 000 kr i løpet av 12 måneder, må du registrere foretaket for mva.")
                 .font(.footnote)
                 .foregroundStyle(andel >= 0.8 ? Color.orange : Color.secondary)
