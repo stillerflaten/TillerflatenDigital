@@ -70,7 +70,9 @@ enum Timebank {
 
     /// Teksten på fakturalinjen for én dag.
     static func beskrivelse(for foring: Timeforing, prosjektnavn: String) -> String {
-        let dato = foring.dato.formatted(.dateTime.day().month(.twoDigits).year().locale(Locale(identifier: "nb_NO")))
+        var format = Date.FormatStyle.dateTime.day().month(.twoDigits).year().locale(Locale(identifier: "nb_NO"))
+        format.timeZone = Frister.kalender.timeZone
+        let dato = foring.dato.formatted(format)
         let hva = foring.notat.trimmet.isEmpty ? prosjektnavn.trimmet : foring.notat.trimmet
         return hva.isEmpty ? dato : "\(dato): \(hva)"
     }

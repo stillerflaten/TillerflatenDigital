@@ -306,4 +306,51 @@ struct SikkerhetskopiTests {
         #expect(try db.fetch(FetchDescriptor<Faktura>()).first?.sumEksMva == 4_000)
         #expect(f.sorterteLinjer.count == 2)
     }
+
+    // MARK: Avtaler
+
+    private func dato(_ aar: Int, _ maaned: Int, _ dag: Int) -> Date {
+        Frister.kalender.date(from: DateComponents(year: aar, month: maaned, day: dag))!
+    }
+
+    @Test func aarligLisensGirRiktigPeriodeOgFlyttesFram() throws {
+        let db = try nyDatabase()
+        let kunde = Kunde(navn: "TPTHK")
+        db.insert(kunde)
+        let a = Avtale(navn: "Lisens og support for medlemsside")
+        a.belop = 6_000
+        a.nestePeriodeFra = dato(2026, 11, 1)
+        a.dagerFor = 14
+        db.insert(a)
+
+        #expect(a.nesteFakturadato == dato(2026, 10, 18))
+        let f = Avtaler.lagFaktura(for: a, kunde: kunde, context: db)
+
+        #expect(f.kundeNavn == "TPTHK")
+        #expect(f.sorterteLinjer.first?.beskrivelse == "Lisens og support for medlemsside, 01.11.2026–31.10.2027")
+        #expect(f.sumEksMva == 6_000)
+        #expect(a.nestePeriodeFra == dato(2027, 11, 1))
+    }
+
+    @Test func maanedligPeriodeSlutterSisteDagIMaaneden() {
+        #expect(Avtaler.periodeTil(fra: dato(2027, 2, 1), intervall: .maanedlig) == dato(2027, 2, 28))
+        #expect(Avtaler.periodeTil(fra: dato(2026, 11, 1), intervall: .kvartalsvis) == dato(2027, 1, 31))
+    }
+
+    @Test func avtalerKommerMedISikkerhetskopien() throws {
+        let gammel = try nyDatabase()
+        let a = Avtale(navn: "Driftsavtale")
+        a.belop = 390
+        a.intervall = .maanedlig
+        gammel.insert(a)
+        try gammel.save()
+
+        let data = try Sikkerhetskopi.lag(fra: gammel).somData()
+        let ny = try nyDatabase()
+        _ = try Sikkerhetskopi.les(data).gjenopprett(til: ny)
+
+        let hentet = try ny.fetch(FetchDescriptor<Avtale>())
+        #expect(hentet.first?.belop == 390)
+        #expect(hentet.first?.intervall == .maanedlig)
+    }
 }

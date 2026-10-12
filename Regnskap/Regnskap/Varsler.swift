@@ -76,6 +76,23 @@ enum Varsler {
             .removePendingNotificationRequests(withIdentifiers: ["fast-\(utgift.uuid.uuidString)"])
     }
 
+    /// Påminnelse om å fakturere en fast avtale den dagen fakturaen skal lages.
+    static func planleggAvtale(_ avtale: Avtale) {
+        let id = "avtale-\(avtale.uuid.uuidString)"
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id])
+        guard avtale.aktiv else { return }
+        let innhold = UNMutableNotificationContent()
+        innhold.title = "Tid for å fakturere: \(avtale.navn)"
+        innhold.body = "\(avtale.kundeNavn.isEmpty ? "" : avtale.kundeNavn + ", ")\(avtale.belop.kr) for \(Avtaler.periodetekst(fra: avtale.nestePeriodeFra, til: avtale.nestePeriodeTil)). Åpne Inntekter → Avtaler for å lage fakturautkastet."
+        innhold.sound = .default
+        leggTil(id: id, dato: avtale.nesteFakturadato, dagerFor: 0, innhold: innhold)
+    }
+
+    static func fjernAvtale(_ avtale: Avtale) {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["avtale-\(avtale.uuid.uuidString)"])
+    }
+
     static func fjernAlleFrister() {
         let senter = UNUserNotificationCenter.current()
         senter.getPendingNotificationRequests { ventende in
