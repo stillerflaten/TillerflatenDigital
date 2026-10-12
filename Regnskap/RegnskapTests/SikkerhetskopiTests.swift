@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import UIKit
 import Testing
 @testable import Regnskap
 
@@ -352,5 +353,50 @@ struct SikkerhetskopiTests {
         let hentet = try ny.fetch(FetchDescriptor<Avtale>())
         #expect(hentet.first?.belop == 390)
         #expect(hentet.first?.intervall == .maanedlig)
+    }
+
+    // MARK: Dokumenter
+
+    @Test func dokumenterPaaKunderOgAvtalerKommerMedISikkerhetskopien() throws {
+        let gammel = try nyDatabase()
+        let kunde = Kunde(navn: "TPTHK")
+        gammel.insert(kunde)
+        let tilbud = Dokument(navn: "Tilbud", filtype: "pdf", data: Data([1, 2, 3]))
+        gammel.insert(tilbud)
+        kunde.dokumenter = [tilbud]
+        let avtale = Avtale(navn: "Lisens")
+        gammel.insert(avtale)
+        let kontrakt = Dokument(navn: "Signert avtale", filtype: "pdf", data: Data([4, 5]))
+        gammel.insert(kontrakt)
+        avtale.dokumenter = [kontrakt]
+        try gammel.save()
+
+        let data = try Sikkerhetskopi.lag(fra: gammel).somData()
+        let ny = try nyDatabase()
+        _ = try Sikkerhetskopi.les(data).gjenopprett(til: ny)
+
+        #expect(try ny.fetch(FetchDescriptor<Kunde>()).first?.dokumenter?.first?.data == Data([1, 2, 3]))
+        let hentet = try ny.fetch(FetchDescriptor<Avtale>()).first?.dokumenter?.first
+        #expect(hentet?.navn == "Signert avtale")
+        #expect(hentet?.data == Data([4, 5]))
+    }
+
+    @Test func dokumenteneSlettesMedAvtalen() throws {
+        let db = try nyDatabase()
+        let avtale = Avtale(navn: "Lisens")
+        db.insert(avtale)
+        let d = Dokument(navn: "Kontrakt", filtype: "pdf", data: Data([1]))
+        db.insert(d)
+        avtale.dokumenter = [d]
+        try db.save()
+        db.delete(avtale)
+        try db.save()
+        #expect(try db.fetch(FetchDescriptor<Dokument>()).isEmpty)
+    }
+
+    @Test func skannedeSiderBlirEnPdf() {
+        let side = UIGraphicsImageRenderer(size: CGSize(width: 100, height: 140)).image { _ in }
+        let pdf = Dokumenter.pdf(av: [side, side])
+        #expect(pdf.starts(with: Data("%PDF".utf8)))
     }
 }

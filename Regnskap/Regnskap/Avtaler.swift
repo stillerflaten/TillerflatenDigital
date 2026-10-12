@@ -20,6 +20,8 @@ final class Avtale {
     var aktiv: Bool = true
     var notat: String = ""
     var opprettet: Date = Date.now
+    /// Selve avtalen eller kontrakten, som PDF eller bilde.
+    @Relationship(deleteRule: .cascade, inverse: \Dokument.avtale) var dokumenter: [Dokument]? = []
 
     init(navn: String = "") {
         self.navn = navn
@@ -295,7 +297,16 @@ struct AvtaleSkjemaView: View {
                     .lineLimit(2...8)
             }
 
-            if !erNy {
+            if erNy {
+                Section {
+                } footer: {
+                    Text("Når avtalen er lagret, kan du legge ved selve kontrakten.")
+                }
+            } else {
+                DokumentSeksjon(dokumenter: avtale.dokumenter ?? [], forklaring: "Legg ved den signerte avtalen eller kontrakten.",
+                                leggTil: { avtale.dokumenter = (avtale.dokumenter ?? []) + [$0] },
+                                fjern: { d in avtale.dokumenter?.removeAll { $0 == d } })
+
                 Section {
                     Toggle("Aktiv", isOn: $avtale.aktiv)
                 } footer: {
@@ -317,7 +328,7 @@ struct AvtaleSkjemaView: View {
                                 }
                             }
                         } message: {
-                            Text("Fakturaer du har laget fra avtalen, blir ikke berørt.")
+                            Text("Dokumentene på avtalen slettes også. Fakturaer du har laget fra avtalen, blir ikke berørt.")
                         }
                 }
             }

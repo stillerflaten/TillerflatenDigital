@@ -14,6 +14,8 @@ final class Kunde {
     var opprettet: Date = Date.now
     /// Egne notater om kunden, f.eks. kontaktperson eller hva dere har avtalt. Står ikke på fakturaen.
     var notat: String = ""
+    /// Kontrakter og andre dokumenter for kunden.
+    @Relationship(deleteRule: .cascade, inverse: \Dokument.kunde) var dokumenter: [Dokument]? = []
 
     init(navn: String = "") {
         self.navn = navn

@@ -97,6 +97,33 @@ struct Sikkerhetskopi: Codable {
         var epost: String
         var opprettet: Date
         var notat: String?
+        var dokumenter: [DokumentKopi]? = nil
+    }
+
+    struct DokumentKopi: Codable {
+        var uuid: UUID
+        var navn: String
+        var filtype: String
+        var opprettet: Date
+        var data: Data?
+
+        init(_ d: Dokument) {
+            uuid = d.uuid
+            navn = d.navn
+            filtype = d.filtype
+            opprettet = d.opprettet
+            data = d.data
+        }
+
+        /// Lager dokumentet i databasen, eller nil hvis filen mangler.
+        func gjenopprett(i context: ModelContext) -> Dokument? {
+            guard let data else { return nil }
+            let d = Dokument(navn: navn, filtype: filtype, data: data)
+            d.uuid = uuid
+            d.opprettet = opprettet
+            context.insert(d)
+            return d
+        }
     }
 
     struct FastUtgiftKopi: Codable {
@@ -146,6 +173,7 @@ struct Sikkerhetskopi: Codable {
         var aktiv: Bool
         var notat: String
         var opprettet: Date
+        var dokumenter: [DokumentKopi]? = nil
     }
 
     struct LinjeKopi: Codable {
@@ -229,7 +257,7 @@ struct Sikkerhetskopi: Codable {
             takketekst: d.string(forKey: Firma.takketekst))
         kopi.kunder = try context.fetch(FetchDescriptor<Kunde>()).map {
             KundeKopi(uuid: $0.uuid, navn: $0.navn, adresse: $0.adresse, orgnr: $0.orgnr, epost: $0.epost,
-                      opprettet: $0.opprettet, notat: $0.notat)
+                      opprettet: $0.opprettet, notat: $0.notat, dokumenter: ($0.dokumenter ?? []).map(DokumentKopi.init))
         }
         kopi.fasteUtgifter = try context.fetch(FetchDescriptor<FastUtgift>()).map {
             FastUtgiftKopi(uuid: $0.uuid, navn: $0.navn, belop: $0.belop, kategoriRaw: $0.kategoriRaw,
@@ -255,7 +283,8 @@ struct Sikkerhetskopi: Codable {
         kopi.avtaler = try context.fetch(FetchDescriptor<Avtale>()).map {
             AvtaleKopi(uuid: $0.uuid, navn: $0.navn, kundeUUID: $0.kundeUUID, kundeNavn: $0.kundeNavn, belop: $0.belop,
                        intervallRaw: $0.intervallRaw, nestePeriodeFra: $0.nestePeriodeFra, dagerFor: $0.dagerFor,
-                       aktiv: $0.aktiv, notat: $0.notat, opprettet: $0.opprettet)
+                       aktiv: $0.aktiv, notat: $0.notat, opprettet: $0.opprettet,
+                       dokumenter: ($0.dokumenter ?? []).map(DokumentKopi.init))
         }
         kopi.prosjekter = try context.fetch(FetchDescriptor<Prosjekt>()).map { p in
             ProsjektKopi(uuid: p.uuid, navn: p.navn, kundeUUID: p.kundeUUID, kundeNavn: p.kundeNavn,
@@ -365,6 +394,7 @@ struct Sikkerhetskopi: Codable {
             kunde.opprettet = k.opprettet
             kunde.notat = k.notat ?? ""
             context.insert(kunde)
+            kunde.dokumenter = (k.dokumenter ?? []).compactMap { $0.gjenopprett(i: context) }
             resultat.lagtTil += 1
         }
 
@@ -445,6 +475,7 @@ struct Sikkerhetskopi: Codable {
             a.notat = k.notat
             a.opprettet = k.opprettet
             context.insert(a)
+            a.dokumenter = (k.dokumenter ?? []).compactMap { $0.gjenopprett(i: context) }
             Varsler.planleggAvtale(a)
             resultat.lagtTil += 1
         }
