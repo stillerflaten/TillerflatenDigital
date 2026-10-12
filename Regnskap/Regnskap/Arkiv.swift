@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
+import QuickLook
 
 /// Hvilke år som er «i bruk» og hvilke som ligger i arkivet.
 /// Ingenting slettes: arkiverte år vises bare et annet sted.
@@ -99,6 +100,7 @@ struct ArkivAarView: View {
     @State private var mappe: ArkivMappe?
     @State private var visEksport = false
     @State private var melding: String?
+    @State private var rapport: URL?
 
     private var bilag: [Bilag] { alleBilag.filter { $0.dato.aar == aar } }
     private var inntekter: [Inntekt] { alleInntekter.filter { $0.dato.aar == aar } }
@@ -178,6 +180,13 @@ struct ArkivAarView: View {
                 } label: {
                     Label("Lagre året i Filer (regneark og bilder)", systemImage: "folder.badge.plus")
                 }
+                Button {
+                    rapport = Aarsrapport.fil(.init(aar: aar, bilag: alleBilag, inntekter: alleInntekter, driftsmidler: driftsmidler,
+                                                    turer: turer, fakturaer: fakturaer, lonn: lonn,
+                                                    mvaRegistrert: mvaRegistrert, hjemmekontor: hjemmekontor))
+                } label: {
+                    Label("Regnskapet som PDF", systemImage: "doc.richtext")
+                }
                 ShareLink(item: Eksport.csvFil(aar: aar, bilag: alleBilag, inntekter: alleInntekter, mvaRegistrert: mvaRegistrert),
                           preview: SharePreview("Regnskap \(String(aar)).csv")) {
                     Label("Del bare regnearket (CSV)", systemImage: "square.and.arrow.up")
@@ -190,6 +199,7 @@ struct ArkivAarView: View {
         }
         .temaBakgrunn()
         .navigationTitle(String(aar))
+        .quickLookPreview($rapport)
         .fileExporter(isPresented: $visEksport, document: mappe, contentType: .folder,
                       defaultFilename: "Tillerflaten Digital \(aar)") { resultat in
             switch resultat {

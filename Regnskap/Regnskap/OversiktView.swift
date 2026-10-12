@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import QuickLook
 
 struct OversiktView: View {
     @Query(sort: \Bilag.dato, order: .reverse) private var bilag: [Bilag]
@@ -17,6 +18,7 @@ struct OversiktView: View {
 
     @State private var aar = Date.now.aar
     @State private var visInnstillinger = false
+    @State private var rapport: URL?
 
     private var oversikt: Aarsoversikt {
         Aarsoversikt(aar: aar, bilag: bilag, inntekter: inntekter, driftsmidler: driftsmidler, turer: turer,
@@ -163,6 +165,13 @@ struct OversiktView: View {
                     } label: {
                         Label("Arkiv med alle år", systemImage: "archivebox")
                     }
+                    Button {
+                        rapport = Aarsrapport.fil(.init(aar: aar, bilag: bilag, inntekter: inntekter, driftsmidler: driftsmidler,
+                                                        turer: turer, fakturaer: fakturaer, lonn: lonn,
+                                                        mvaRegistrert: mvaRegistrert, hjemmekontor: hjemmekontor))
+                    } label: {
+                        Label("Eksporter \(String(aar)) som PDF", systemImage: "doc.richtext")
+                    }
                     ShareLink(item: Eksport.csvFil(aar: aar, bilag: bilag, inntekter: inntekter, mvaRegistrert: mvaRegistrert),
                               preview: SharePreview("Regnskap \(String(aar)).csv")) {
                         Label("Eksporter \(String(aar)) som regneark (CSV)", systemImage: "square.and.arrow.up")
@@ -173,6 +182,7 @@ struct OversiktView: View {
             }
             .temaBakgrunn()
             .navigationTitle("Tillerflaten Digital")
+            .quickLookPreview($rapport)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
