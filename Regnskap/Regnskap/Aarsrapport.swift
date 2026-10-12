@@ -224,7 +224,9 @@ final class PDFSkriver {
         UIRectFill(CGRect(x: 0, y: 0, width: Self.side.width, height: hoyde))
 
         let logo = CGRect(x: marg, y: (hoyde - 30) / 2, width: 30, height: 30)
-        let sti = UIBezierPath(cgPath: Logomerke().path(in: logo).cgPath)
+        // Logomerke tegner fra (0, 0), så stien må flyttes dit logoen skal stå.
+        let sti = UIBezierPath(cgPath: Logomerke().path(in: CGRect(origin: .zero, size: logo.size))
+            .offsetBy(dx: logo.minX, dy: logo.minY).cgPath)
         Self.fjell.setFill()
         sti.fill()
 
