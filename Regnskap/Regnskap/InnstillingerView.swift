@@ -1,4 +1,5 @@
 import SwiftUI
+import QuickLook
 
 struct InnstillingerView: View {
     @Environment(\.dismiss) private var dismiss
@@ -10,10 +11,21 @@ struct InnstillingerView: View {
     @AppStorage(Innstilling.hjemmekontor) private var hjemmekontor = false
     @AppStorage(Innstilling.mvaFra) private var mvaFra: Double = 0
     @AppStorage(Innstilling.laas) private var laas = false
+    @State private var manual: URL?
 
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    Button {
+                        manual = Brukermanual.url
+                    } label: {
+                        Label("Brukermanual", systemImage: "book")
+                    }
+                } footer: {
+                    Text("Slik bruker du appen, steg for steg. Du finner den også under spørsmålstegnet på Oversikt.")
+                }
+
                 SikkerhetskopiSeksjon()
 
                 if Laas.stottes {
@@ -83,6 +95,7 @@ struct InnstillingerView: View {
                 }
             }
             .temaBakgrunn()
+            .quickLookPreview($manual)
             .navigationTitle("Innstillinger")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -147,4 +160,9 @@ struct BelopFelt: View {
         let renset = tekst.filter { !$0.isWhitespace }.replacingOccurrences(of: ",", with: ".")
         return Double(renset) ?? 0
     }
+}
+
+/// Brukermanualen ligger i appen som PDF. Kilden er Regnskap/Manual/Brukermanual-Regnskap.html.
+enum Brukermanual {
+    static var url: URL? { Bundle.main.url(forResource: "Brukermanual-Regnskap", withExtension: "pdf") }
 }

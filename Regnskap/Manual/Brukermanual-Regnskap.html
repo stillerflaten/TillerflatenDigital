@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<title>Brukermanual Regnskap</title>
+<style>
+  @page { size: A4; margin: 16mm 16mm 18mm 16mm; }
+  :root {
+    --tekst: #17222b; --dempet: #55626d; --linje: #ddd8cc; --aksent: #1f5f6b;
+    --aksent-myk: #dcebec; --hero: #17323a; --hero-tekst: #f3f1ea; --hero-dempet: #b9c8c9;
+    --fjell: #8cc6ce; --bg: #f7f5f0; --gul: #fff6dc; --gul-kant: #e3b341;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: var(--tekst);
+         font-size: 10.5pt; line-height: 1.45; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  h1, h2, h3 { font-family: "New York", Georgia, "Times New Roman", serif; font-weight: 600; color: var(--hero); }
+  h2 { font-size: 20pt; margin: 0 0 4pt; display: flex; align-items: center; gap: 8pt; }
+  h3 { font-size: 13pt; margin: 14pt 0 4pt; }
+  p { margin: 0 0 6pt; }
+  .side { page-break-before: always; }
+  .ingress { color: var(--dempet); margin-bottom: 10pt; }
+  .merke { display: inline-block; font-family: -apple-system, Arial, sans-serif; font-size: 8pt; font-weight: 700;
+           letter-spacing: .5pt; background: var(--aksent-myk); color: var(--aksent); border-radius: 10pt;
+           padding: 2pt 8pt; vertical-align: middle; }
+  b, .knapp { font-weight: 650; }
+  .knapp { background: var(--aksent-myk); color: var(--aksent); border-radius: 4pt; padding: 0 4pt; white-space: nowrap; }
+
+  /* Forside */
+  .topp { background: var(--hero); color: var(--hero-tekst); border-radius: 12pt; padding: 22pt 24pt 26pt;
+          position: relative; overflow: hidden; }
+  .topp .rad { display: flex; align-items: center; gap: 14pt; }
+  .topp svg.logo { width: 54pt; height: 54pt; flex: none; }
+  .topp .etikett { color: var(--fjell); font-size: 9pt; font-weight: 800; letter-spacing: 2pt; }
+  .topp h1 { color: #fff; font-size: 30pt; margin: 2pt 0; }
+  .topp .under { color: var(--hero-dempet); font-size: 11pt; }
+  .topp svg.rygg { position: absolute; left: 0; right: 0; bottom: -1pt; width: 100%; height: 26pt; }
+
+  .boks { break-inside: avoid; border: 1.5pt solid var(--gul-kant); background: var(--gul); border-radius: 10pt; padding: 14pt 16pt; margin: 16pt 0; }
+  .boks h3 { margin-top: 0; }
+  .tips { border-left: 3pt solid var(--aksent); background: var(--aksent-myk); padding: 7pt 10pt; border-radius: 0 6pt 6pt 0;
+          margin: 8pt 0; break-inside: avoid; }
+  .tips b:first-child { color: var(--aksent); }
+  .obs { border-left: 3pt solid var(--gul-kant); background: var(--gul); padding: 7pt 10pt; border-radius: 0 6pt 6pt 0;
+         margin: 8pt 0; break-inside: avoid; }
+
+  ol.steg { list-style: none; padding: 0; margin: 6pt 0 8pt; counter-reset: steg; }
+  ol.steg > li { counter-increment: steg; position: relative; padding: 2pt 0 4pt 26pt; break-inside: avoid; }
+  ol.steg > li::before { content: counter(steg); position: absolute; left: 0; top: 1pt; width: 17pt; height: 17pt;
+          border-radius: 50%; background: var(--aksent); color: #fff; font-size: 8.5pt; font-weight: 700;
+          display: flex; align-items: center; justify-content: center; }
+  ul { margin: 4pt 0 8pt; padding-left: 16pt; }
+  li { margin-bottom: 2pt; }
+
+  table { width: 100%; border-collapse: collapse; margin: 6pt 0 10pt; break-inside: avoid; }
+  th { text-align: left; font-size: 8.5pt; color: var(--dempet); font-weight: 600; text-transform: uppercase;
+       letter-spacing: .4pt; border-bottom: 1pt solid var(--linje); padding: 4pt 6pt; }
+  td { border-bottom: 1pt solid var(--linje); padding: 5pt 6pt; vertical-align: top; }
+  td:first-child { font-weight: 650; white-space: nowrap; }
+
+  .kort { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; margin: 8pt 0 12pt; }
+  .kort > div { border: 1pt solid var(--linje); border-radius: 9pt; padding: 9pt 11pt; background: #fff; break-inside: avoid; }
+  .kort .nr { display: inline-flex; width: 18pt; height: 18pt; border-radius: 50%; background: var(--hero); color: #fff;
+              font-size: 9pt; font-weight: 700; align-items: center; justify-content: center; margin-right: 6pt; }
+  .kort h4 { margin: 0 0 3pt; font-size: 11pt; display: flex; align-items: center; }
+  .kort p { margin: 0; color: var(--dempet); font-size: 9.5pt; }
+
+  /* Fanelinje */
+  .telefon { margin: 10pt auto 4pt; width: 300pt; border: 1.5pt solid #c9c4b8; border-radius: 16pt; background: #fbfaf7;
+             padding: 8pt 6pt 6pt; break-inside: avoid; }
+  .faner { display: flex; justify-content: space-around; }
+  .fane { text-align: center; font-size: 7.5pt; color: var(--dempet); width: 54pt; }
+  .fane svg { width: 20pt; height: 20pt; display: block; margin: 0 auto 2pt; stroke: var(--dempet); fill: none;
+              stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .fane.aktiv { color: var(--aksent); font-weight: 700; }
+  .fane.aktiv svg { stroke: var(--aksent); }
+  .bildetekst { text-align: center; font-size: 8.5pt; color: var(--dempet); margin-bottom: 10pt; }
+
+  .vei { font-size: 9pt; color: var(--aksent); font-weight: 600; margin-bottom: 8pt; }
+  .vei span { color: var(--dempet); font-weight: 400; }
+  .to { display: grid; grid-template-columns: 1fr 1fr; gap: 14pt; }
+  .liten { font-size: 9pt; color: var(--dempet); }
+  .innhold { columns: 2; column-gap: 20pt; margin-top: 6pt; }
+  .innhold div { display: flex; justify-content: space-between; border-bottom: 1pt dotted var(--linje); padding: 3pt 0;
+                 break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<!-- ============ FORSIDE ============ -->
+<div class="topp">
+  <div class="rad">
+    <svg class="logo" viewBox="0 0 32 32"><path d="M3 26 L12 10 L17 18 L21 12 L29 26 Z" fill="#8cc6ce"/></svg>
+    <div>
+      <div class="etikett">BRUKERMANUAL</div>
+      <h1>Regnskap</h1>
+      <div class="under">Regnskapsappen for Tillerflaten Digital</div>
+    </div>
+  </div>
+  <svg class="rygg" viewBox="0 0 600 40" preserveAspectRatio="none"><path d="M0 40 L0 26 L90 12 L170 28 L260 8 L350 24 L430 14 L520 30 L600 18 L600 40 Z" fill="rgba(247,245,240,.12)"/></svg>
+</div>
+
+<p style="margin-top:14pt">Appen holder styr på alt det økonomiske i foretaket: kvitteringer, inntekter, fakturaer, timer,
+faste avtaler, skatt, mva og frister. Denne manualen viser hvordan du bruker den, steg for steg.
+Du trenger ikke lese alt på én gang. Start med <b>Kom i gang</b>, og slå opp resten når du trenger det.</p>
+
+<div class="boks">
+  <h3>Kom i gang på ti minutter</h3>
+  <p>Gjør dette én gang, så blir skatteberegningen og fakturaene riktige fra starten.</p>
+  <ol class="steg">
+    <li><b>Firmaopplysninger.</b> Oversikt › tannhjulet øverst til høyre › <span class="knapp">Firmaopplysninger til fakturaer</span>. Fyll inn navn på foretaket, navnet ditt, adresse, e-post, organisasjonsnummer og kontonummer.</li>
+    <li><b>Lønn fra fast jobb.</b> Samme sted. Skriv forventet brutto årslønn fra politiet, med tillegg. Den avgjør hvor mye skatt overskuddet får.</li>
+    <li><b>Mva og hjemmekontor.</b> Huk av for <span class="knapp">Foretaket er mva-registrert</span> bare hvis det er sant. Bruker du et eget rom bare til foretaket, huk av for hjemmekontor.</li>
+    <li><b>Lås.</b> Slå på <span class="knapp">Lås med Face ID</span>, så ingen andre kan åpne regnskapet.</li>
+    <li><b>Faste utgifter.</b> Bilag › <span class="knapp">Faste utgifter</span>. Legg inn abonnementene dine (Apple Developer, domene, webhotell, Claude). Da minner appen deg på kvitteringene.</li>
+  </ol>
+</div>
+
+<h3>Innhold</h3>
+<div class="innhold">
+  <div><span>Slik er appen bygget opp</span><span>2</span></div>
+  <div><span>Oversikt</span><span>3</span></div>
+  <div><span>Bilag (utgifter og kvitteringer)</span><span>4</span></div>
+  <div><span>Faste utgifter</span><span>5</span></div>
+  <div><span>Inntekter fra App Store</span><span>5</span></div>
+  <div><span>Kunder og fakturaer</span><span>6</span></div>
+  <div><span>Når kunden betaler, eller ikke</span><span>7</span></div>
+  <div><span>Timer og prosjekter</span><span>8</span></div>
+  <div><span>Avtaler (lisenser og faste oppdrag)</span><span>9</span></div>
+  <div><span>Dokumenter og kontrakter</span><span>10</span></div>
+  <div><span>Kalkulatorer</span><span>10</span></div>
+  <div><span>Frister og varsler</span><span>11</span></div>
+  <div><span>Når året er slutt</span><span>12</span></div>
+  <div><span>Sikkerhetskopi og lås</span><span>13</span></div>
+  <div><span>Vanlige spørsmål</span><span>14</span></div>
+</div>
+
+<!-- ============ OPPBYGGING ============ -->
+<section class="side">
+<h2>Slik er appen bygget opp</h2>
+<p class="ingress">Appen har seks faner. På iPhone er det bare plass til fem nederst, så de to siste ligger under <b>Mer</b>.</p>
+
+<div class="telefon">
+  <div class="faner">
+    <div class="fane aktiv"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 16v-3M12 16v-6M16 16v-4"/></svg>Oversikt</div>
+    <div class="fane"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7"/></svg>Bilag</div>
+    <div class="fane"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>Inntekter</div>
+    <div class="fane"><svg viewBox="0 0 24 24"><path d="M4 17c3-6 5 2 8-3s4 3 8 0"/><path d="M4 21h16"/></svg>Avtaler</div>
+    <div class="fane"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/></svg>Mer</div>
+  </div>
+</div>
+<div class="bildetekst">Fanene nederst på iPhone. På iPad og Mac ligger alle seks i en sidemeny til venstre.</div>
+
+<table>
+  <tr><th>Fane</th><th>Hva du gjør der</th></tr>
+  <tr><td>Oversikt</td><td>Ser årets resultat, hvor mye du bør sette av til skatt, og hva som venter på deg. Her ligger også Innstillinger, Arkiv og eksport.</td></tr>
+  <tr><td>Bilag</td><td>Legger inn kvitteringer og regninger for alt du kjøper til foretaket. Faste utgifter ligger øverst.</td></tr>
+  <tr><td>Inntekter</td><td>Fører utbetalinger fra App Store, lager fakturaer, fører timer og ser avtaler som skal faktureres.</td></tr>
+  <tr><td>Avtaler</td><td>Alle lisenser og faste avtaler, sortert etter når de skal faktureres. Du kan søke.</td></tr>
+  <tr><td>Kalkulatorer</td><td>Skatt, avskrivning av dyrt utstyr, kjørelogg, mva, tall til skattemeldingen og en sjekkliste for nytt foretak. Under <b>Mer</b> på iPhone.</td></tr>
+  <tr><td>Frister</td><td>Alle fristene for skatt og mva, med varsler og kalender. Under <b>Mer</b> på iPhone.</td></tr>
+</table>
+
+<h3>Noen ord du møter i appen</h3>
+<table>
+  <tr><td>Bilag</td><td>Dokumentasjon på en utgift, som regel en kvittering eller regning. Du må ta vare på bilag i fem år.</td></tr>
+  <tr><td>Næringsandel</td><td>Hvor stor del av en ting som brukes i foretaket. En telefon du bruker halvparten privat, har 50 %.</td></tr>
+  <tr><td>Utkast</td><td>En faktura som ikke er sendt ennå. Den kan endres fritt og har ikke fått nummer.</td></tr>
+  <tr><td>Ferdigstille</td><td>Gjøre et utkast til en ekte faktura. Den får neste nummer og kan ikke endres etterpå.</td></tr>
+  <tr><td>Kreditnota</td><td>En «minusfaktura» som opphever hele eller deler av en faktura som var feil.</td></tr>
+  <tr><td>Avskrivning</td><td>Utstyr over 30 000 kr trekkes fra litt hvert år i stedet for alt på en gang.</td></tr>
+</table>
+
+<div class="tips"><b>Finne manualen igjen:</b> Den ligger i appen. Trykk spørsmålstegnet øverst på Oversikt, eller Innstillinger › Brukermanual.</div>
+<div class="tips"><b>Tips:</b> Alt du legger inn, synkroniseres via iCloud mellom iPhone, iPad og Mac. Du kan altså ta bilde av kvitteringen på telefonen og lage fakturaen på Mac-en.</div>
+</section>
+
+<!-- ============ OVERSIKT ============ -->
+<section class="side">
+<h2>Oversikt</h2>
+<p class="ingress">Det første du ser når du åpner appen. Her får du svar på «hvordan går det?» og «er det noe jeg må gjøre?».</p>
+
+<h3>Øverst</h3>
+<ul>
+  <li><b>Året</b> øverst til venstre. Trykk for å se et annet år.</li>
+  <li><b>Spørsmålstegnet</b> øverst til høyre åpner denne manualen.</li>
+  <li><b>Tannhjulet</b> øverst til høyre åpner Innstillinger (lønn, mva, firmaopplysninger, lås og sikkerhetskopi).</li>
+  <li><b>Sett av til skatt</b> i det mørke feltet: omtrent hvor mye av overskuddet du bør legge til side. Teksten under viser hvor mye neste krone du tjener, blir skattet med.</li>
+</ul>
+
+<h3>Resultat og fradrag</h3>
+<p>Inntekter minus utgifter, avskrivninger, kjøring og hjemmekontor gir overskuddet. Under <b>Fradrag</b> ser du hva som trekkes fra.</p>
+
+<h3>Ting som venter på deg</h3>
+<p>De fleste av disse radene dukker bare opp når det er noe å gjøre. Trykk på dem for å gå rett dit.</p>
+<table>
+  <tr><td>Kvitteringer å legge inn</td><td>En fast utgift er trukket, men du har ikke lagt inn kvitteringen.</td></tr>
+  <tr><td>Fakturaer som venter på betaling</td><td>Sendte fakturaer som ikke er markert som betalt. Rød tekst betyr forfalt.</td></tr>
+  <tr><td>Ubetalte regninger</td><td>Regninger du har lagt inn som bilag, men ikke betalt.</td></tr>
+  <tr><td>Neste frist</td><td>Den neste fristen for skatt eller mva.</td></tr>
+  <tr><td>Mva-grensen</td><td>Hvor nær du er 50 000 kr i salg siste 12 måneder. Over grensen må foretaket mva-registreres.</td></tr>
+</table>
+
+<h3>Arkiv og eksport</h3>
+<ul>
+  <li><span class="knapp">Arkiv med alle år</span> viser tidligere år, med bilag, inntekter og tall til skattemeldingen.</li>
+  <li><span class="knapp">Eksporter 2026 som PDF</span> lager et ryddig regnskap for året, med resultat, tall til skattemeldingen og lister over alt som er ført. Fint å sende til en regnskapsfører.</li>
+  <li><span class="knapp">Eksporter 2026 som regneark (CSV)</span> gir det samme som regneark, som åpnes i Numbers eller Excel.</li>
+</ul>
+<div class="obs"><b>Husk:</b> Skatten er et estimat. Den blir mest riktig når lønnen i Innstillinger stemmer. Fasiten er skatteoppgjøret ditt.</div>
+</section>
+
+<!-- ============ BILAG ============ -->
+<section class="side">
+<h2>Bilag <span class="merke">UTGIFTER</span></h2>
+<p class="ingress">Ta bilde av kvitteringen med en gang du kjøper noe til foretaket. Da slipper du å lete etter den i mai.</p>
+
+<h3>Legge inn en kvittering</h3>
+<ol class="steg">
+  <li>Gå til <b>Bilag</b> og trykk <span class="knapp">+</span> øverst til høyre.</li>
+  <li>Under <b>Kvittering</b>: velg <span class="knapp">Skann kvittering</span> for å ta bilde (flere sider går fint), eller <span class="knapp">Velg bilder eller skjermbilder</span> hvis du har den som bilde eller skjermbilde fra en e-post.</li>
+  <li>Skriv <b>hva som er kjøpt</b>, for eksempel «Apple Developer Program».</li>
+  <li>Skriv <b>Beløp inkl. mva</b> og velg <b>dato</b>.</li>
+  <li>Velg <b>Kategori</b>. Under kategorien står det en kort forklaring.</li>
+  <li>Juster <b>Brukes i foretaket</b> hvis du også bruker tingen privat.</li>
+  <li>Trykk <span class="knapp">Lagre</span>.</li>
+</ol>
+
+<h3>Kategoriene</h3>
+<table>
+  <tr><td>Programvare og abonnement</td><td>Apple Developer, Claude, GitHub, domene og webhotell.</td></tr>
+  <tr><td>Utstyr under 30 000 kr</td><td>Trekkes fra i sin helhet samme år.</td></tr>
+  <tr><td>Utstyr over 30 000 kr</td><td>Avskrives over flere år. Legg det også inn under Kalkulatorer › Avskrivning.</td></tr>
+  <tr><td>Telefon og internett</td><td>Sett næringsandelen til det du faktisk bruker i foretaket.</td></tr>
+  <tr><td>Andre</td><td>Kontorrekvisita, kurs og faglitteratur, markedsføring, reise, regnskap og bankgebyrer, annet.</td></tr>
+</table>
+
+<h3>Kjøp fra utlandet</h3>
+<p>Kjøper du fra et utenlandsk firma uten norsk mva (Apple Developer, GitHub, Claude), huk av for <span class="knapp">Kjøpt fra utlandet uten norsk mva</span>. Det har bare betydning når du er mva-registrert, men det er lurt å gjøre det fra starten.</p>
+
+<h3>Regninger som skal betales senere</h3>
+<p>Huk av for <span class="knapp">Dette er en regning som skal betales</span> og velg forfallsdato. Du får et varsel dagen før, og kan legge forfallet i kalenderen. Når den er betalt, huker du av for <b>Betalt</b>.</p>
+
+<div class="tips"><b>Finne igjen et bilag:</b> Dra listen litt ned for å få fram søkefeltet. Knappen øverst til venstre viser bare ubetalte regninger. Bilag fra tidligere år ligger i Arkiv.</div>
+</section>
+
+<!-- ============ FASTE UTGIFTER ============ -->
+<section class="side">
+<h2>Faste utgifter</h2>
+<div class="vei">Bilag › Faste utgifter</div>
+<p class="ingress">Abonnementer som trekkes jevnlig. Appen minner deg på å legge inn kvitteringen hver gang de trekkes.</p>
+
+<ol class="steg">
+  <li>Trykk <span class="knapp">+</span> og skriv navnet, for eksempel «Apple Developer Program».</li>
+  <li>Skriv omtrentlig beløp i kroner. Betaler du i dollar, holder et anslag. Det riktige beløpet tar du fra kvitteringen.</li>
+  <li>Velg hvor ofte det <b>trekkes</b> (hver måned, hvert kvartal eller hvert år) og datoen for <b>neste trekk</b>.</li>
+  <li>Velg kategori og eventuelt <b>Kjøpt fra utlandet</b>. Trykk <span class="knapp">Lagre</span>.</li>
+</ol>
+
+<h3>Når trekket har skjedd</h3>
+<p>Øverst i listen kommer utgiften opp med to valg:</p>
+<ul>
+  <li><span class="knapp">Legg inn kvittering</span> åpner et nytt bilag som er fylt ut på forhånd. Du legger bare til bildet og retter beløpet.</li>
+  <li><span class="knapp">Hopp over</span> hvis den ikke ble trukket denne gangen.</li>
+</ul>
+<div class="tips"><b>Sier du opp et abonnement?</b> Åpne det og slå av <b>Aktiv</b>. Da får du ikke flere påminnelser, og kvitteringene du har lagt inn, blir liggende.</div>
+
+<!-- ============ INNTEKTER ============ -->
+<h2 style="margin-top:22pt">Inntekter fra App Store</h2>
+<p class="ingress">Apple betaler ut en gang i måneden. Før beløpet når det kommer inn på kontoen.</p>
+<ol class="steg">
+  <li>Gå til <b>Inntekter</b> og trykk <span class="knapp">+</span>.</li>
+  <li>Skriv beløpet som faktisk kom inn på kontoen, i kroner. Apple har allerede trukket sin provisjon og betalt mva der det trengs.</li>
+  <li>Velg <b>Kilde</b> (App Store, Nettside-oppdrag eller Annet) og <b>Dato på konto</b>.</li>
+  <li>Legg gjerne ved dokumentasjon, for eksempel et skjermbilde fra App Store Connect › Payments and Financial Reports.</li>
+</ol>
+<div class="obs"><b>Fakturaer fører seg selv.</b> Inntekter fra fakturaer skal du ikke legge inn her. De havner under Inntekter av seg selv når du markerer fakturaen som betalt.</div>
+</section>
+
+<!-- ============ FAKTURA ============ -->
+<section class="side">
+<h2>Kunder og fakturaer</h2>
+<div class="vei">Inntekter › Fakturaer</div>
+<p class="ingress">Appen nummererer fakturaene, lager en pen PDF med logoen din og fører inntekten når kunden har betalt.</p>
+
+<h3>Legge inn en kunde</h3>
+<p>Trykk på personene øverst til høyre i Fakturaer (<b>Kunder</b>) og så <span class="knapp">+</span>. Skriv navn, adresse, e-post og org.nr. hvis det er en bedrift. Under <b>Notater</b> kan du skrive kontaktperson og hva dere har avtalt. Det står ikke på fakturaen.</p>
+
+<h3>Lage en faktura</h3>
+<ol class="steg">
+  <li>Trykk <span class="knapp">+</span> i Fakturaer. Du får et <b>utkast</b>.</li>
+  <li>Velg <b>Kunde</b>, eller lag en ny rett derfra.</li>
+  <li>Sjekk <b>Fakturadato</b>, <b>Levert</b> og <b>Forfall</b>. 14 dager er vanlig.</li>
+  <li>Skriv hva du har levert, antall og pris på hver linje. Trykk <span class="knapp">Legg til linje</span> for flere.</li>
+  <li>Skriv eventuelt en <b>merknad</b>, for eksempel «Takk for oppdraget!». Huk av for <span class="knapp">Legg ved takkebrev</span> hvis det er første oppdrag for en ny kunde.</li>
+  <li>Trykk <span class="knapp">Forhåndsvis PDF</span> og se at alt stemmer. Utkastet er merket UTKAST og har ikke fått nummer.</li>
+  <li>Trykk <span class="knapp">Ferdigstill fakturaen</span>. Den får neste nummer og kan ikke endres etterpå.</li>
+  <li>Trykk <span class="knapp">Send eller del PDF</span>, velg <b>Mail</b> og send til kunden.</li>
+</ol>
+
+<div class="tips"><b>Prøve uten å gjøre noe galt?</b> Lag et utkast og trykk Forhåndsvis PDF så mange ganger du vil. Utkast som aldri ble fylt ut, forsvinner av seg selv. Et utkast du ikke trenger, sletter du med <span class="knapp">Slett utkastet</span> nederst.</div>
+
+<h3>Fakturaene i listen</h3>
+<table>
+  <tr><td>Utkast</td><td>Ikke ferdigstilt. Kan endres og slettes.</td></tr>
+  <tr><td>Venter på betaling</td><td>Sendt. Viser forfallsdato, rødt hvis den er forfalt.</td></tr>
+  <tr><td>Ferdig</td><td>Betalt. Beløpet ligger under Inntekter.</td></tr>
+</table>
+<div class="obs"><b>Fyll ut firmaopplysningene først.</b> Mangler de, ligger det en lenke øverst i Fakturaer som tar deg dit. Opplysningene skrives inn på fakturaen når du ferdigstiller den, så senere endringer påvirker ikke fakturaer du allerede har sendt.</div>
+</section>
+
+<!-- ============ BETALING ============ -->
+<section class="side">
+<h2>Når kunden betaler, eller ikke</h2>
+
+<h3>Kunden har betalt</h3>
+<ol class="steg">
+  <li>Åpne fakturaen og trykk <span class="knapp">Kunden har betalt</span>.</li>
+  <li>Velg datoen pengene kom inn, og lagre.</li>
+</ol>
+<p>Beløpet legges automatisk inn under Inntekter. Trykket du feil, bruker du <span class="knapp">Angre betaling</span>. Da slettes inntekten igjen.</p>
+<div class="tips"><b>Varsel:</b> Har kunden ikke betalt innen forfall, får du et varsel dagen etter. Du kan også legge forfallet i kalenderen fra fakturaen.</div>
+
+<h3>Kunden har ikke betalt: send purring</h3>
+<ol class="steg">
+  <li>Åpne fakturaen og trykk <span class="knapp">Send purring</span>.</li>
+  <li>Velg <b>Ny frist</b>. 14 dager er vanlig, og det er nødvendig hvis saken senere skal til inkasso.</li>
+  <li>Appen lager en purring som PDF og en vennlig e-posttekst. Velg <b>Mail</b> og send.</li>
+  <li>Trykk <span class="knapp">Sendt</span>. Du får et nytt varsel hvis den nye fristen også går ut.</li>
+</ol>
+
+<h3>Noe ble feil på en sendt faktura</h3>
+<p>En sendt faktura skal aldri slettes eller endres, det sier loven. Gjør slik i stedet:</p>
+<ol class="steg">
+  <li>Åpne fakturaen og trykk <span class="knapp">Lag kreditnota</span>.</li>
+  <li>Du får et utkast med de samme linjene. Skal bare en del krediteres, fjerner eller endrer du linjene.</li>
+  <li>Ferdigstill og send kreditnotaen til kunden.</li>
+  <li>Lag en ny, riktig faktura hvis det trengs.</li>
+</ol>
+
+<div class="obs"><b>Testet og vil slette?</b> Den <i>siste</i> fakturaen i nummerserien kan slettes hvis den aldri er sendt til noen. Nummeret blir da ledig igjen, så serien ikke får hull. Eldre fakturaer kan ikke slettes.</div>
+
+<h3>Takkebrevet</h3>
+<p>Teksten i takkebrevet endrer du i <b>Firmaopplysninger</b>. Skriv <b>{kunde}</b> der kundens navn skal stå, og <b>{firma}</b> for navnet på foretaket. Hilsenen med navnet ditt kommer automatisk.</p>
+</section>
+
+<!-- ============ TIMER ============ -->
+<section class="side">
+<h2>Timer og prosjekter</h2>
+<div class="vei">Inntekter › Timer og prosjekter</div>
+<p class="ingress">Lag et prosjekt for hvert oppdrag og før timene du bruker. Du skriver dem inn selv, det er ingen stoppeklokke.</p>
+
+<h3>Lage et prosjekt</h3>
+<ol class="steg">
+  <li>Trykk <span class="knapp">+</span> og gi prosjektet et navn, for eksempel «Nettside for Kafé Fjord».</li>
+  <li>Velg <b>Kunde</b>.</li>
+  <li>Velg <b>Timepris</b> eller <b>Fastpris</b> og skriv beløpet uten mva.</li>
+  <li>Skriv gjerne hva dere har avtalt under <b>Notater</b>, og lagre.</li>
+</ol>
+
+<h3>Føre timer</h3>
+<ol class="steg">
+  <li>Åpne prosjektet og trykk <span class="knapp">Før timer</span>.</li>
+  <li>Velg dato og skriv antall timer. En halvtime skriver du som <b>0,5</b>.</li>
+  <li>Skriv kort hva du gjorde. Teksten blir linjen på fakturaen.</li>
+</ol>
+
+<h3>Fra timer til faktura</h3>
+<p>På timepris trykker du <span class="knapp">Lag fakturautkast av … timer</span>. Appen lager et utkast med én linje per dag og merker timene som fakturert. Sjekk utkastet og ferdigstill det som vanlig.</p>
+<p>På fastpris ser du i stedet hva du faktisk tjente i timen: avtalt pris delt på timene du har brukt.</p>
+
+<div class="tips"><b>Ferdig med oppdraget?</b> Åpne <span class="knapp">Endre prosjektet</span> og huk av for <b>Prosjektet er ferdig</b>. Det flyttes ned i listen, og timene blir liggende. Et prosjekt du bare har testet med, sletter du ved å sveipe det mot venstre.</div>
+<div class="obs"><b>Sletter du et fakturautkast</b> som ble laget fra timer, blir timene ufakturerte igjen, så du kan lage et nytt.</div>
+</section>
+
+<!-- ============ AVTALER ============ -->
+<section class="side">
+<h2>Avtaler <span class="merke">FASTE INNTEKTER</span></h2>
+<div class="vei">Fanen Avtaler <span>(også Inntekter › Avtaler)</span></div>
+<p class="ingress">Lisenser, driftsavtaler og annet du fakturerer jevnlig, for eksempel den årlige lisensen og supporten til TPTHK. Appen minner deg på når det er tid, og lager fakturaen med riktig periode.</p>
+
+<h3>Legge inn en avtale</h3>
+<ol class="steg">
+  <li>Trykk <span class="knapp">+</span> i Avtaler.</li>
+  <li>Skriv hva det gjelder, for eksempel «Lisens og support for medlemsside». Teksten blir fakturalinjen, med perioden etter.</li>
+  <li>Velg kunde og skriv beløpet uten mva.</li>
+  <li>Velg hvor ofte den <b>faktureres</b> (for eksempel årlig) og når <b>neste periode starter</b>.</li>
+  <li>Skriv gjerne hva support dekker og oppsigelsesfristen under <b>Notater</b>, og lagre.</li>
+</ol>
+<p>Under feltene ser du hvilken periode neste faktura gjelder, og hvilken dag den lages. Da får du et varsel.</p>
+
+<h3>Når det er tid for å fakturere</h3>
+<ol class="steg">
+  <li>Avtalen ligger øverst under <b>Skal faktureres nå</b>, og Inntekter viser hvor mange som venter.</li>
+  <li>Trykk <span class="knapp">Lag fakturautkast</span>. Linjen får perioden, for eksempel «Lisens og support, 01.11.2026–31.10.2027».</li>
+  <li>Sjekk utkastet, ferdigstill og send.</li>
+</ol>
+<p>Avtalen flyttes automatisk fram til neste periode. Sletter du utkastet, kan du flytte datoen tilbake inne i avtalen.</p>
+
+<h3>Finne en avtale</h3>
+<p>Avtalene er sortert etter når de skal faktureres. Dra listen ned for å få fram søkefeltet. Du kan søke på navn, kunde, notater og navnet på dokumenter.</p>
+<div class="tips"><b>Avtalen er sagt opp?</b> Åpne den og slå av <b>Aktiv</b>. Den flyttes til Avsluttet, og du får ikke flere påminnelser.</div>
+</section>
+
+<!-- ============ DOKUMENTER ============ -->
+<section class="side">
+<h2>Dokumenter og kontrakter</h2>
+<p class="ingress">Du kan legge signerte avtaler, tilbud og vilkår rett på en avtale eller en kunde. Dokumentene synkes og er med i sikkerhetskopien.</p>
+
+<h3>Legge ved et dokument</h3>
+<ol class="steg">
+  <li>Åpne avtalen (trykk <span class="knapp">Endre</span>) eller kunden. Den må være lagret først.</li>
+  <li>Under <b>Dokumenter</b>, trykk <span class="knapp">Legg til dokument</span>.</li>
+  <li>Velg en av tre:
+    <ul>
+      <li><b>Velg fil</b>: en PDF eller Word-fil fra Filer eller iCloud Drive.</li>
+      <li><b>Skann dokument</b>: ta bilde av et papir. Flere sider blir én PDF.</li>
+      <li><b>Velg bilde</b>: et bilde eller skjermbilde fra Bilder.</li>
+    </ul>
+  </li>
+</ol>
+<p>Trykk på et dokument for å åpne det. Derfra kan du dele det eller sende det på e-post. Sveip mot venstre for å slette.</p>
+<div class="obs"><b>Får du «Kunne ikke lese»?</b> Filen ligger trolig bare i iCloud og er ikke lastet ned. Åpne den i Filer-appen først, og prøv igjen.</div>
+
+<!-- ============ KALKULATORER ============ -->
+<h2 style="margin-top:22pt">Kalkulatorer</h2>
+<div class="vei">Kalkulatorer <span>(under Mer på iPhone)</span></div>
+<table>
+  <tr><td>Skatt</td><td>Hvor mye du bør sette av. Trykk <span class="knapp">Hent tallene mine</span> for å bruke årets tall, eller skriv inn egne for å teste. Lenke til å endre forskuddsskatten.</td></tr>
+  <tr><td>Avskrivning</td><td>Legg inn utstyr over 30 000 kr under <b>Mitt utstyr</b>. Appen regner ut fradraget hvert år.</td></tr>
+  <tr><td>Kjørelogg</td><td>Før turer med egen bil for foretaket, for eksempel til et kundemøte. Kjøring til og fra jobb i politiet teller ikke.</td></tr>
+  <tr><td>Mva</td><td>Forklarer grensen på 50 000 kr, App Store og nettsideoppdrag, og viser tall til mva-meldingen når du er registrert.</td></tr>
+  <tr><td>Skattemeldingen</td><td>Tallene du skal føre inn i næringsspesifikasjonen, sortert på konto.</td></tr>
+  <tr><td>Sjekkliste</td><td>Det du bør ha på plass som nytt enkeltpersonforetak.</td></tr>
+</table>
+</section>
+
+<!-- ============ FRISTER ============ -->
+<section class="side">
+<h2>Frister og varsler</h2>
+<div class="vei">Frister <span>(under Mer på iPhone)</span></div>
+<p class="ingress">Alle fristene for forskuddsskatt, skattemelding og mva, med varsel før de går ut.</p>
+<ol class="steg">
+  <li>Slå på <span class="knapp">Varsle meg før frister</span>. Varselet kommer kl. 09.00.</li>
+  <li>Trykk <span class="knapp">Legg alle fristene i kalenderen</span> for å få dem i en egen kalender. Trykker du flere ganger, oppdateres de som finnes.</li>
+  <li>Vil du bare ha én frist i kalenderen, sveiper du den mot høyre.</li>
+</ol>
+<div class="obs">Frister som havner i en helg, er flyttet til mandag, men helligdager må du sjekke selv. Skatteetaten kan endre frister, så dobbeltsjekk der.</div>
+
+<h3>Varsler appen sender</h3>
+<table>
+  <tr><td>Frister</td><td>Før skatt- og mva-frister (når du har slått det på).</td></tr>
+  <tr><td>Faste utgifter</td><td>Når et abonnement er trukket og kvitteringen bør legges inn.</td></tr>
+  <tr><td>Regninger</td><td>Dagen før forfall på regninger du har lagt inn som bilag.</td></tr>
+  <tr><td>Fakturaer</td><td>Dagen etter forfall hvis kunden ikke har betalt, og etter fristen i en purring.</td></tr>
+  <tr><td>Avtaler</td><td>Når det er tid for å fakturere en avtale.</td></tr>
+</table>
+<p class="liten">Første gang appen vil sende varsler, spør iPhone om lov. Svar Tillat. Har du sagt nei, slår du det på i Innstillinger-appen på telefonen › Varslinger › Regnskap.</p>
+
+<h3>Mva-registrering</h3>
+<p>Når salget passerer 50 000 kr i løpet av 12 måneder, skal foretaket registreres i Merverdiavgiftsregisteret. Oversikt viser hvor nær du er. Når registreringen er godkjent, huker du av for <b>Foretaket er mva-registrert</b> i Innstillinger og velger datoen. Da legger appen 25 % mva på nye fakturaer, og Kalkulatorer › Mva viser tallene til mva-meldingen.</p>
+</section>
+
+<!-- ============ ÅRSSLUTT ============ -->
+<section class="side">
+<h2>Når året er slutt</h2>
+<p class="ingress">Skattemeldingen for 2026 skal leveres innen 31. mai 2027. Slik gjør du det med appen.</p>
+
+<h3>Før nyttår</h3>
+<ul>
+  <li>Sjekk at alle kvitteringer er lagt inn. Bilag som mangler bilde, er merket «Mangler bilde».</li>
+  <li>Sjekk at fakturaer som er betalt, er markert som betalt.</li>
+  <li>Har du kjøpt utstyr over 30 000 kr, legg det inn under Kalkulatorer › Avskrivning.</li>
+</ul>
+
+<h3>Skattemeldingen</h3>
+<ol class="steg">
+  <li>Gå til <b>Oversikt › Arkiv med alle år</b> og velg året, eller åpne Kalkulatorer › Skattemeldingen.</li>
+  <li>Logg inn på skatteetaten.no, velg «Skattemelding» og legg til <b>næringsspesifikasjonen</b> for foretaket.</li>
+  <li>Før inn beløpene fra appen på de samme kontonumrene.</li>
+</ol>
+<div class="tips"><b>Første gang:</b> Kontonumrene er forslag etter standard kontoplan. Det er lurt å sjekke dem mot veiledningen i skattemeldingen, eller la en regnskapsfører se over. Send dem gjerne PDF-en fra <b>Eksporter som PDF</b>.</div>
+
+<h3>Ta vare på året</h3>
+<ol class="steg">
+  <li>Gå til <b>Oversikt › Arkiv med alle år</b> og velg året.</li>
+  <li>Trykk <span class="knapp">Lagre året i Filer</span>. Du får en mappe med regneark, alle kvitteringsbildene og fakturaene.</li>
+  <li>Lagre mappen i iCloud Drive, så har du en kopi utenfor appen.</li>
+  <li>Trykk gjerne <span class="knapp">Regnskapet som PDF</span> også, og lagre den samme sted.</li>
+</ol>
+<div class="obs"><b>Fem år:</b> Bilag skal oppbevares i fem år etter at regnskapsåret er slutt. Arkivet viser hvor lenge for hvert år. Appen sletter aldri noe av seg selv.</div>
+
+<h3>Nytt år</h3>
+<p>Skattesatsene er lagt inn for 2026. Når statsbudsjettet for 2027 er klart, må satsene for 2027 legges inn i appen. Til da bruker appen 2026-satsene og sier fra om det på Oversikt.</p>
+</section>
+
+<!-- ============ SIKKERHET ============ -->
+<section class="side">
+<h2>Sikkerhetskopi og lås</h2>
+<div class="vei">Oversikt › tannhjulet › Sikkerhetskopi</div>
+
+<h3>iCloud-synk</h3>
+<p>Alt du legger inn, også bilder og dokumenter, synkroniseres til din private iCloud. Det kommer tilbake hvis du sletter appen eller bytter telefon. Står det «Ikke logget inn», må du logge inn på iCloud i Innstillinger-appen på telefonen.</p>
+
+<h3>Sikkerhetskopi</h3>
+<p>Synken speiler alt, også det du sletter ved et uhell. Derfor tar appen i tillegg en egen sikkerhetskopi:</p>
+<ul>
+  <li><b>Automatisk kopi hver dag</b>: la denne være slått på. Kopien tas når du åpner appen, høyst en gang i døgnet, og lagres i iCloud Drive › Regnskap › Sikkerhetskopier. De fem nyeste og en fra hver av de seks siste månedene beholdes.</li>
+  <li><span class="knapp">Lag sikkerhetskopi nå</span>: lager en fil du selv velger hvor du vil lagre.</li>
+  <li><span class="knapp">Gjenopprett fra sikkerhetskopi</span>: henter tilbake det som mangler. Den sletter eller endrer aldri noe som finnes.</li>
+</ul>
+
+<h3>Lås</h3>
+<p>Slå på <span class="knapp">Lås med Face ID</span>. Appen låses når du går ut av den, og må låses opp når du kommer tilbake. Det gjelder bare enheten du slår det på, så slå det på både på telefonen og Mac-en.</p>
+
+<h3>Innstillinger, kort fortalt</h3>
+<table>
+  <tr><td>Firmaopplysninger</td><td>Navn, adresse, org.nr., kontonummer og takkebrev. Brukes på fakturaene.</td></tr>
+  <tr><td>Lønn fra fast jobb</td><td>Forventet brutto årslønn. Avgjør skatten på overskuddet.</td></tr>
+  <tr><td>Forskuddsskatt</td><td>Huk av hvis du betaler forskuddsskatt. Beløpet endrer du på skatteetaten.no.</td></tr>
+  <tr><td>Mva-registrert</td><td>Bare når registreringen er godkjent. Velg dato og eventuelt årstermin.</td></tr>
+  <tr><td>Hjemmekontor</td><td>Gir et standardfradrag hvis du har et eget rom bare til foretaket.</td></tr>
+</table>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="side">
+<h2>Vanlige spørsmål</h2>
+<table>
+  <tr><td>Jeg sendte en faktura med feil</td><td>Lag en kreditnota fra fakturaen, og send en ny, riktig faktura. Se side 7.</td></tr>
+  <tr><td>Jeg laget en testfaktura</td><td>Er det den siste og aldri sendt, kan du slette den. Ellers lager du en kreditnota.</td></tr>
+  <tr><td>Kunden har betalt for lite</td><td>Lag en kreditnota for resten hvis dere er enige, eller send purring på det som mangler.</td></tr>
+  <tr><td>Hvor ble App Store-pengene av?</td><td>De må føres for hånd under Inntekter hver gang Apple betaler ut. Fakturaer føres automatisk.</td></tr>
+  <tr><td>Jeg glemte kvitteringen</td><td>Legg inn bilaget likevel, og hent kvitteringen fra e-posten eller nettbutikken senere. Bilaget er merket «Mangler bilde» til du legger den ved.</td></tr>
+  <tr><td>Skatten virker feil</td><td>Sjekk lønnen i Innstillinger. Er den tom, regner appen som om overskuddet var den eneste inntekten din.</td></tr>
+  <tr><td>Telefonen og Mac-en viser ikke det samme</td><td>Synken kan bruke noen minutter. Sjekk at begge er logget inn på samme iCloud, og at Sikkerhetskopi viser iCloud-synk: På.</td></tr>
+  <tr><td>Jeg slettet noe ved et uhell</td><td>Innstillinger › Sikkerhetskopi › Gjenopprett fra sikkerhetskopi. Velg den nyeste kopien fra før du slettet.</td></tr>
+  <tr><td>Kjøpte en Mac til over 30 000 kr</td><td>Legg den inn som bilag med kategorien «Utstyr over 30 000 kr», og under Kalkulatorer › Avskrivning. Ikke bruk «under 30 000» i tillegg, da blir fradraget dobbelt.</td></tr>
+  <tr><td>Når må jeg registrere meg for mva?</td><td>Når salget passerer 50 000 kr i løpet av 12 måneder. Oversikt viser hvor nær du er.</td></tr>
+</table>
+
+<div class="boks" style="margin-top:20pt">
+  <h3>Rutinen som gjør det enkelt</h3>
+  <table style="margin:0">
+    <tr><td>Hver gang du kjøper noe</td><td>Ta bilde av kvitteringen i Bilag med en gang.</td></tr>
+    <tr><td>Når du jobber på et oppdrag</td><td>Før timene samme dag.</td></tr>
+    <tr><td>Hver måned</td><td>Før utbetalingen fra Apple. Legg inn kvitteringene appen minner deg på.</td></tr>
+    <tr><td>Når et varsel kommer</td><td>Fakturer avtalen, purr på fakturaen eller betal regningen.</td></tr>
+    <tr><td>Hvert kvartal</td><td>Se på Sett av til skatt, og juster forskuddsskatten hvis du tjener mer enn ventet.</td></tr>
+    <tr><td>I mai</td><td>Skattemeldingen med tallene fra appen. Lagre året i Filer.</td></tr>
+  </table>
+</div>
+<p class="liten" style="margin-top:14pt">Tallene i appen er estimater og et grunnlag for regnskapet, ikke et revidert regnskap. Er du usikker, ring Skatteetaten på 800 80 000 eller spør en regnskapsfører. Manualen gjelder appen per oktober 2026.</p>
+</section>
+
+</body>
+</html>

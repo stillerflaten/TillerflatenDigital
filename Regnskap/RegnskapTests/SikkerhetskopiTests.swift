@@ -416,6 +416,11 @@ struct SikkerhetskopiTests {
 
     // MARK: Årsrapport
 
+    @Test func brukermanualenFolgerMedAppen() throws {
+        let url = try #require(Brukermanual.url)
+        #expect(try Data(contentsOf: url).starts(with: Data("%PDF".utf8)))
+    }
+
     @Test func aarsrapportBlirPdfMedFlereSider() throws {
         let db = try nyDatabase()
         var bilag: [Bilag] = []
