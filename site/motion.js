@@ -13,7 +13,7 @@
   gsap.defaults({ ease: 'power3.out', duration: 0.8 });
 
   // Hero: teksten bygger seg opp når siden åpnes.
-  gsap.fromTo('.hero .wrap > *',
+  gsap.fromTo('.hero-text > *, .hero-art',
     { autoAlpha: 0, y: 24 },
     { autoAlpha: 1, y: 0, stagger: 0.12, delay: 0.1 });
 
@@ -42,6 +42,7 @@
 
   reveal('.cards .card', '.cards', 0.1);
   reveal('.price-note', '.price-note');
+  reveal('.site-card', '.site-grid', 0.12);
   reveal('.steps .step', '.steps', 0.15);
   reveal('.about > div > p', '.about', 0.12);
   reveal('#kontakt .form, #contact .form', '.contact .form');
