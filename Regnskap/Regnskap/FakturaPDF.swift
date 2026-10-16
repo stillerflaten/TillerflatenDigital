@@ -261,7 +261,7 @@ struct FakturaSide: View {
     private var bunn: some View {
         VStack(spacing: 6) {
             Rectangle().fill(linje).frame(height: 0.5)
-            Text([selgerNavn, "Org.nr. \(Fakturering.orgnr(selgerOrgnr))", selgerEpost]
+            Text([selgerNavn, "Org.nr. \(Fakturering.orgnr(selgerOrgnr))\(faktura.mvaSats > 0 ? " MVA" : "")", selgerEpost]
                 .filter { !$0.isEmpty }
                 .joined(separator: "  ·  "))
                 .font(.system(size: 8))
@@ -304,6 +304,7 @@ struct TakkebrevSide: View {
     private var navn: String { firma(faktura.selgerNavn, Firma.navn, standard: Firma.standardNavn) }
     private var eier: String { firma(faktura.selgerEier, Firma.eier) }
     private var epost: String { firma(faktura.selgerEpost, Firma.epost, standard: Firma.standardEpost) }
+    private var orgnr: String { firma(faktura.selgerOrgnr, Firma.orgnr, standard: Firma.standardOrgnr) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -349,7 +350,12 @@ struct TakkebrevSide: View {
                 Spacer(minLength: 0)
 
                 Rectangle().fill(linje).frame(height: 0.5)
-                Text(faktura.nummer > 0 ? "Vedlegg til faktura nr. \(faktura.nummer)" : "Vedlegg til fakturaen")
+                // Brev fra foretaket skal ha navn og org.nr., også når det sendes alene.
+                Text([faktura.nummer > 0 ? "Vedlegg til faktura nr. \(faktura.nummer)" : "Vedlegg til fakturaen",
+                      navn,
+                      orgnr.trimmet.isEmpty ? "" : "Org.nr. \(Fakturering.orgnr(orgnr))\(faktura.mvaSats > 0 ? " MVA" : "")"]
+                    .filter { !$0.isEmpty }
+                    .joined(separator: "  ·  "))
                     .font(.system(size: 8))
                     .foregroundStyle(graa)
             }
