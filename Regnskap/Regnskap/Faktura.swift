@@ -166,11 +166,22 @@ enum Firma {
 
     static let standardNavn = "Tillerflaten Digital"
     static let standardEpost = "post@tillerflatendigital.no"
+    /// Registrert i Brønnøysundregistrene oktober 2026.
+    static let standardOrgnr = "938657742"
 
     private static var d: UserDefaults { .standard }
 
     static var lagretNavn: String { d.string(forKey: navn) ?? standardNavn }
     static var lagretEpost: String { d.string(forKey: epost) ?? standardEpost }
+    static var lagretOrgnr: String { d.string(forKey: orgnr) ?? standardOrgnr }
+
+    /// Legger inn organisasjonsnummeret hvis feltet er tomt, så det kommer på fakturaene uten at du må skrive det.
+    /// Kalles etter at innstillingene er hentet fra iCloud, så nummeret også sendes til de andre enhetene.
+    static func fyllInnOrgnr() {
+        if Fakturering.siffer(d.string(forKey: orgnr) ?? "").isEmpty {
+            d.set(standardOrgnr, forKey: orgnr)
+        }
+    }
     static var lagretBetalingsfrist: Int { d.object(forKey: betalingsfrist) as? Int ?? 14 }
     static var lagretStartnummer: Int { d.object(forKey: startnummer) as? Int ?? 1 }
     static var lagretTakketekst: String {
@@ -195,7 +206,7 @@ enum Firma {
         if lagretNavn.trimmet.isEmpty { liste.append("navn på foretaket") }
         if (d.string(forKey: eier) ?? "").trimmet.isEmpty { liste.append("navnet ditt") }
         if (d.string(forKey: adresse) ?? "").trimmet.isEmpty { liste.append("adresse") }
-        if Fakturering.siffer(d.string(forKey: orgnr) ?? "").count != 9 { liste.append("organisasjonsnummer") }
+        if Fakturering.siffer(lagretOrgnr).count != 9 { liste.append("organisasjonsnummer") }
         if Fakturering.siffer(d.string(forKey: kontonr) ?? "").count != 11 { liste.append("kontonummer") }
         return liste
     }
@@ -246,7 +257,7 @@ enum Fakturering {
         faktura.selgerNavn = Firma.lagretNavn
         faktura.selgerEier = d.string(forKey: Firma.eier) ?? ""
         faktura.selgerAdresse = d.string(forKey: Firma.adresse) ?? ""
-        faktura.selgerOrgnr = d.string(forKey: Firma.orgnr) ?? ""
+        faktura.selgerOrgnr = Firma.lagretOrgnr
         faktura.selgerKontonr = d.string(forKey: Firma.kontonr) ?? ""
         faktura.selgerEpost = Firma.lagretEpost
         faktura.takketekst = faktura.harTakkebrev ? Firma.lagretTakketekst : ""

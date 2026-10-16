@@ -9,6 +9,7 @@ struct RegnskapApp: App {
     init() {
         Tema.konfigurer()
         InnstillingSynk.start()
+        Firma.fyllInnOrgnr()
     }
 
     var body: some Scene {

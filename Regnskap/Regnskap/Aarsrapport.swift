@@ -39,7 +39,7 @@ enum Aarsrapport {
 
         let d = UserDefaults.standard
         let firma = Firma.lagretNavn
-        let orgnr = Fakturering.orgnr(d.string(forKey: Firma.orgnr) ?? "")
+        let orgnr = Fakturering.orgnr(Firma.lagretOrgnr)
         let eier = d.string(forKey: Firma.eier) ?? ""
 
         return PDFSkriver.lag(bunntekst: "\(firma) · Regnskap \(g.aar)") { s in
