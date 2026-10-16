@@ -324,6 +324,10 @@ a { color: var(--accent); }
 .app-links { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 8px; }
 .app-site { font-weight: 600; text-decoration: none; }
 .app-site:hover { text-decoration: underline; }
+.store-badge { display: inline-flex; border-radius: 10px; transition: transform .15s ease; }
+.store-badge:hover { transform: translateY(-1px); }
+.store-badge:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 3px; }
+.store-badge img { height: 54px; width: auto; display: block; }
 .app .btn-primary { background: var(--accent); color: var(--on-accent); }
 .app .btn-primary:hover { background: var(--accent-hover); }
 
