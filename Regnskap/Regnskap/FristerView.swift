@@ -64,6 +64,13 @@ struct FristerView: View {
                 } footer: {
                     Text("Datoene er hentet fra Skatteetaten høsten 2026. Skatteetaten kan endre frister, så dobbeltsjekk der.")
                 }
+
+                Section {
+                    Text("Et enkeltpersonforetak har bokføringsplikt, men ikke regnskapsplikt så lenge eiendelene er under 20 millioner kroner og det ikke er flere enn 20 årsverk. Da skal du ikke sende årsregnskap til Brønnøysundregistrene. Skattemeldingen med næringsspesifikasjon er årsoppgjøret ditt.")
+                        .font(.footnote)
+                } header: {
+                    Text("Årsregnskap")
+                }
             }
             .temaBakgrunn()
             .navigationTitle("Frister")
