@@ -506,9 +506,10 @@ struct Sikkerhetskopi: Codable {
             resultat.lagtTil += 1
         }
 
-        // Firmaopplysninger hentes inn hvis de ikke er fylt ut her.
+        // Firmaopplysninger hentes inn hvis de ikke er fylt ut her. Organisasjonsnummeret har en standardverdi,
+        // så det er kontonummeret som viser om opplysningene er fylt ut.
         let d = UserDefaults.standard
-        if let inn = innstillinger, Fakturering.siffer(d.string(forKey: Firma.orgnr) ?? "").isEmpty,
+        if let inn = innstillinger, Fakturering.siffer(d.string(forKey: Firma.kontonr) ?? "").isEmpty,
            let orgnr = inn.firmaOrgnr, !orgnr.isEmpty {
             d.set(inn.firmaNavn, forKey: Firma.navn)
             d.set(inn.firmaEier, forKey: Firma.eier)

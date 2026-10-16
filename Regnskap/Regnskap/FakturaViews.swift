@@ -877,7 +877,7 @@ struct FirmaView: View {
     @AppStorage(Firma.navn) private var navn = Firma.standardNavn
     @AppStorage(Firma.eier) private var eier = ""
     @AppStorage(Firma.adresse) private var adresse = ""
-    @AppStorage(Firma.orgnr) private var orgnr = ""
+    @AppStorage(Firma.orgnr) private var orgnr = Firma.standardOrgnr
     @AppStorage(Firma.kontonr) private var kontonr = ""
     @AppStorage(Firma.epost) private var epost = Firma.standardEpost
     @AppStorage(Firma.betalingsfrist) private var betalingsfrist = 14

@@ -30,7 +30,7 @@ struct FakturaSide: View {
     private var selgerNavn: String { firma(faktura.selgerNavn, Firma.navn, standard: Firma.standardNavn) }
     private var selgerEier: String { firma(faktura.selgerEier, Firma.eier) }
     private var selgerAdresse: String { firma(faktura.selgerAdresse, Firma.adresse) }
-    private var selgerOrgnr: String { firma(faktura.selgerOrgnr, Firma.orgnr) }
+    private var selgerOrgnr: String { firma(faktura.selgerOrgnr, Firma.orgnr, standard: Firma.standardOrgnr) }
     private var selgerKontonr: String { firma(faktura.selgerKontonr, Firma.kontonr) }
     private var selgerEpost: String { firma(faktura.selgerEpost, Firma.epost, standard: Firma.standardEpost) }
 
