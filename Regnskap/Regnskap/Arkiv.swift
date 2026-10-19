@@ -248,7 +248,7 @@ struct ArkivMappe: FileDocument {
         }
         for i in inntekter where i.dato.aar == aar {
             if let data = i.bilde {
-                leggTil(Arkiv.filnavn(dato: i.dato, tittel: "Inntekt " + i.kilde), data)
+                leggTil(Arkiv.filnavn(dato: i.dato, tittel: "Inntekt " + i.kilde), data, filtype: i.bildeFiltype)
             }
         }
         self.filer = filer

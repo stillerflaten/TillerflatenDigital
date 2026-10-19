@@ -144,7 +144,10 @@ final class Inntekt {
     var belop: Double = 0
     var kilde: String = "App Store"
     var notat: String = ""
+    /// Dokumentasjon: et bilde, eller en PDF (f.eks. en faktura eller utbetalingsrapport).
     @Attribute(.externalStorage) var bilde: Data? = nil
+    /// «jpg» eller «pdf».
+    var bildeFiltype: String = "jpg"
 
     init(dato: Date = .now, belop: Double = 0, kilde: String = "App Store") {
         self.dato = dato
