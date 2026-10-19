@@ -26,6 +26,7 @@
 
   // Elementer som kommer inn fra under når de blir synlige.
   function reveal(targets, trigger, stagger) {
+    if (typeof trigger === 'string' && !document.querySelector(trigger)) return;
     gsap.fromTo(targets,
       { autoAlpha: 0, y: 32 },
       {
