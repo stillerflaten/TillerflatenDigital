@@ -231,11 +231,11 @@ struct ArkivMappe: FileDocument {
         let csv = "\u{FEFF}" + Eksport.csv(aar: aar, bilag: alleBilag, inntekter: inntekter, mvaRegistrert: mvaRegistrert)
         filer["Regnskap \(aar).csv"] = Data(csv.utf8)
 
-        func leggTil(_ navn: String, _ data: Data) {
-            var kandidat = navn + ".jpg"
+        func leggTil(_ navn: String, _ data: Data, filtype: String = "jpg") {
+            var kandidat = navn + "." + filtype
             var nr = 2
             while filer["Bilag/" + kandidat] != nil {
-                kandidat = "\(navn) (\(nr)).jpg"
+                kandidat = "\(navn) (\(nr)).\(filtype)"
                 nr += 1
             }
             filer["Bilag/" + kandidat] = data
@@ -243,7 +243,7 @@ struct ArkivMappe: FileDocument {
         for b in bilag {
             let navn = Arkiv.filnavn(dato: b.dato, tittel: b.tittel.isEmpty ? b.kategori.navn : b.tittel)
             for v in b.sorterteVedlegg {
-                if let data = v.data { leggTil(navn, data) }
+                if let data = v.data { leggTil(navn, data, filtype: v.filtype) }
             }
         }
         for i in inntekter where i.dato.aar == aar {
