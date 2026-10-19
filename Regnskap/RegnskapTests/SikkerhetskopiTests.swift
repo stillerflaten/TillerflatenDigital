@@ -61,6 +61,21 @@ struct SikkerhetskopiTests {
         #expect(hentet.data == pdf.data)
     }
 
+    @Test func pdfPaaInntektBeholderFiltypen() throws {
+        let gammel = try nyDatabase()
+        let inntekt = Inntekt(belop: 5_000, kilde: "Nettside-oppdrag")
+        inntekt.bilde = Dokumenter.pdf(av: [UIImage(systemName: "doc")!])
+        inntekt.bildeFiltype = "pdf"
+        gammel.insert(inntekt)
+        try gammel.save()
+
+        let ny = try nyDatabase()
+        _ = try Sikkerhetskopi.les(try Sikkerhetskopi.lag(fra: gammel).somData()).gjenopprett(til: ny)
+        let hentet = try #require(try ny.fetch(FetchDescriptor<Inntekt>()).first)
+        #expect(hentet.bildeFiltype == "pdf")
+        #expect(hentet.bilde == inntekt.bilde)
+    }
+
     @Test func betaltFakturaBlirInntektOgKanAngres() throws {
         let db = try nyDatabase()
         let f = Faktura()

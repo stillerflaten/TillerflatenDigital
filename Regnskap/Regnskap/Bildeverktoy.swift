@@ -1,6 +1,9 @@
 import SwiftUI
 import PhotosUI
 import VisionKit
+import PDFKit
+import QuickLook
+import UniformTypeIdentifiers
 
 enum Bildeverktoy {
     /// Krymper bildet og lagrer det som JPEG, så kvitteringene ikke fyller opp telefonen.
@@ -17,18 +20,37 @@ enum Bildeverktoy {
     }
 }
 
-/// Velg bilde fra biblioteket, eller skann kvitteringen med kameraet.
+/// Ett dokument (bilde eller PDF): skann, velg bilde eller velg en PDF fra Filer.
 struct BildeVelger: View {
     @Binding var bildeData: Data?
+    /// «jpg» eller «pdf».
+    @Binding var filtype: String
 
     @State private var valgtFoto: PhotosPickerItem?
     @State private var visSkanner = false
     @State private var visStortBilde = false
+    @State private var visFilvelger = false
+    @State private var forhandsvis: URL?
+    @State private var feil: String?
+
+    private var erPdf: Bool { filtype.lowercased() == "pdf" }
+
+    private var miniatyr: UIImage? {
+        guard let bildeData else { return nil }
+        if erPdf {
+            return PDFDocument(data: bildeData)?.page(at: 0)?.thumbnail(of: CGSize(width: 340, height: 480), for: .mediaBox)
+        }
+        return UIImage(data: bildeData)
+    }
 
     var body: some View {
-        if let bildeData, let bilde = UIImage(data: bildeData) {
+        if let bilde = miniatyr {
             Button {
-                visStortBilde = true
+                if erPdf {
+                    apnePdf()
+                } else {
+                    visStortBilde = true
+                }
             } label: {
                 Image(uiImage: bilde)
                     .resizable()
@@ -36,13 +58,25 @@ struct BildeVelger: View {
                     .frame(maxHeight: 240)
                     .frame(maxWidth: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(alignment: .bottomLeading) {
+                        if erPdf {
+                            Text("PDF")
+                                .font(.caption2.bold())
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color.red.opacity(0.85), in: Capsule())
+                                .padding(5)
+                        }
+                    }
             }
             .buttonStyle(.plain)
             .fullScreenCover(isPresented: $visStortBilde) {
                 StortBildeView(bilder: [bilde])
             }
-            Button("Fjern bilde", role: .destructive) {
-                self.bildeData = nil
+            Button(erPdf ? "Fjern PDF" : "Fjern bilde", role: .destructive) {
+                bildeData = nil
+                filtype = "jpg"
             }
         }
 
@@ -50,12 +84,12 @@ struct BildeVelger: View {
             Button {
                 visSkanner = true
             } label: {
-                Label("Skann kvittering", systemImage: "doc.viewfinder")
+                Label("Skann dokument", systemImage: "doc.viewfinder")
             }
             .fullScreenCover(isPresented: $visSkanner) {
                 DokumentSkanner { sider in
                     if let forste = sider.first {
-                        bildeData = Bildeverktoy.komprimer(forste)
+                        sett(Bildeverktoy.komprimer(forste), filtype: "jpg")
                     }
                 }
                 .ignoresSafeArea()
@@ -70,10 +104,56 @@ struct BildeVelger: View {
             Task {
                 if let data = try? await nytt.loadTransferable(type: Data.self),
                    let bilde = UIImage(data: data) {
-                    bildeData = Bildeverktoy.komprimer(bilde)
+                    sett(Bildeverktoy.komprimer(bilde), filtype: "jpg")
                 }
                 valgtFoto = nil
             }
+        }
+
+        Button {
+            visFilvelger = true
+        } label: {
+            Label("Velg PDF eller fil", systemImage: "doc.richtext")
+        }
+        .quickLookPreview($forhandsvis)
+        .fileImporter(isPresented: $visFilvelger, allowedContentTypes: [.pdf, .image]) { svar in
+            guard case .success(let url) = svar else { return }
+            let tilgang = url.startAccessingSecurityScopedResource()
+            defer { if tilgang { url.stopAccessingSecurityScopedResource() } }
+            if let raa = try? Data(contentsOf: url) {
+                if PDFDocument(data: raa) != nil {
+                    sett(raa, filtype: "pdf")
+                    return
+                }
+                if let bilde = UIImage(data: raa) {
+                    sett(Bildeverktoy.komprimer(bilde), filtype: "jpg")
+                    return
+                }
+            }
+            feil = "Kunne ikke lese «\(url.lastPathComponent)». Ligger filen i iCloud Drive, kan du åpne den i Filer-appen først så den lastes ned."
+        }
+        .alert("Dokumentasjon", isPresented: Binding(get: { feil != nil }, set: { if !$0 { feil = nil } })) {
+            Button("OK") { feil = nil }
+        } message: {
+            Text(feil ?? "")
+        }
+    }
+
+    private func sett(_ data: Data?, filtype: String) {
+        guard let data else { return }
+        bildeData = data
+        self.filtype = filtype
+    }
+
+    private func apnePdf() {
+        guard let bildeData else { return }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Dokumentasjon-\(UUID().uuidString)")
+            .appendingPathExtension("pdf")
+        if (try? bildeData.write(to: url, options: .atomic)) != nil {
+            forhandsvis = url
+        } else {
+            feil = "Kunne ikke åpne PDF-en."
         }
     }
 }

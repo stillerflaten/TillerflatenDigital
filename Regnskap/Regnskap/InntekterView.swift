@@ -143,7 +143,7 @@ struct InntektSkjemaView: View {
             }
 
             Section("Dokumentasjon") {
-                BildeVelger(bildeData: $inntekt.bilde)
+                BildeVelger(bildeData: $inntekt.bilde, filtype: $inntekt.bildeFiltype)
                 TextField("Notat (f.eks. «Payment for August»)", text: $inntekt.notat, axis: .vertical)
             }
 

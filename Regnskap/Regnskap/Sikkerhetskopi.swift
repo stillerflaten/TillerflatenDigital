@@ -50,6 +50,7 @@ struct Sikkerhetskopi: Codable {
         var kilde: String
         var notat: String
         var bilde: Data?
+        var bildeFiltype: String? = nil
     }
 
     struct DriftsmiddelKopi: Codable {
@@ -229,7 +230,8 @@ struct Sikkerhetskopi: Codable {
                       fraUtlandet: b.fraUtlandet)
         }
         kopi.inntekter = try context.fetch(FetchDescriptor<Inntekt>()).map {
-            InntektKopi(uuid: $0.uuid, dato: $0.dato, belop: $0.belop, kilde: $0.kilde, notat: $0.notat, bilde: $0.bilde)
+            InntektKopi(uuid: $0.uuid, dato: $0.dato, belop: $0.belop, kilde: $0.kilde, notat: $0.notat, bilde: $0.bilde,
+                        bildeFiltype: $0.bildeFiltype)
         }
         kopi.driftsmidler = try context.fetch(FetchDescriptor<Driftsmiddel>()).map {
             DriftsmiddelKopi(uuid: $0.uuid, navn: $0.navn, kjopsdato: $0.kjopsdato, kostpris: $0.kostpris,
@@ -358,6 +360,7 @@ struct Sikkerhetskopi: Codable {
             i.uuid = k.uuid
             i.notat = k.notat
             i.bilde = k.bilde
+            i.bildeFiltype = k.bildeFiltype ?? "jpg"
             context.insert(i)
             resultat.lagtTil += 1
         }
