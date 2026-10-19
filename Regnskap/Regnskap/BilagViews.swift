@@ -97,7 +97,7 @@ struct BilagRad: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            if let data = bilag.sorterteVedlegg.first?.data, let bilde = UIImage(data: data) {
+            if let bilde = bilag.sorterteVedlegg.first?.miniatyr(storrelse: CGSize(width: 80, height: 80)) {
                 Image(uiImage: bilde)
                     .resizable()
                     .scaledToFill()

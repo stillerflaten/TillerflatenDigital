@@ -115,7 +115,7 @@ final class Bilag {
     }
 }
 
-/// Ett bilde knyttet til et bilag.
+/// Et bilde eller en PDF knyttet til et bilag.
 @Model
 final class Vedlegg {
     var uuid: UUID = UUID()
@@ -123,12 +123,17 @@ final class Vedlegg {
     /// Rekkefølge når flere bilder legges til samtidig (f.eks. sider fra skanneren).
     var nr: Int = 0
     @Attribute(.externalStorage) var data: Data? = nil
+    /// «jpg» for bilder og skann, «pdf» for kvitteringer som kom som PDF.
+    var filtype: String = "jpg"
     var bilag: Bilag?
 
-    init(data: Data, nr: Int = 0) {
+    init(data: Data, nr: Int = 0, filtype: String = "jpg") {
         self.data = data
         self.nr = nr
+        self.filtype = filtype
     }
+
+    var erPdf: Bool { filtype.lowercased() == "pdf" }
 }
 
 /// En utbetaling eller annen inntekt.

@@ -24,6 +24,7 @@ struct Sikkerhetskopi: Codable {
         var opprettet: Date
         var nr: Int
         var data: Data?
+        var filtype: String? = nil
     }
 
     struct BilagKopi: Codable {
@@ -224,7 +225,7 @@ struct Sikkerhetskopi: Codable {
             BilagKopi(uuid: b.uuid, dato: b.dato, tittel: b.tittel, belop: b.belop, mva: b.mva,
                       kategoriRaw: b.kategoriRaw, naeringsandel: b.naeringsandel, notat: b.notat,
                       erRegning: b.erRegning, forfallsdato: b.forfallsdato, erBetalt: b.erBetalt,
-                      vedlegg: b.sorterteVedlegg.map { VedleggKopi(uuid: $0.uuid, opprettet: $0.opprettet, nr: $0.nr, data: $0.data) },
+                      vedlegg: b.sorterteVedlegg.map { VedleggKopi(uuid: $0.uuid, opprettet: $0.opprettet, nr: $0.nr, data: $0.data, filtype: $0.filtype) },
                       fraUtlandet: b.fraUtlandet)
         }
         kopi.inntekter = try context.fetch(FetchDescriptor<Inntekt>()).map {
@@ -340,7 +341,7 @@ struct Sikkerhetskopi: Codable {
             var nye: [Vedlegg] = []
             for vk in k.vedlegg {
                 guard let data = vk.data else { continue }
-                let v = Vedlegg(data: data, nr: vk.nr)
+                let v = Vedlegg(data: data, nr: vk.nr, filtype: vk.filtype ?? "jpg")
                 v.uuid = vk.uuid
                 v.opprettet = vk.opprettet
                 context.insert(v)

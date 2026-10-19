@@ -41,6 +41,26 @@ struct SikkerhetskopiTests {
         #expect(try ny.fetch(FetchDescriptor<Bilag>()).count == 1)
     }
 
+    @Test func pdfKvitteringBeholderFiltypenOgFaarMiniatyr() throws {
+        let gammel = try nyDatabase()
+        let bilag = Bilag(tittel: "Domene", belop: 199, kategori: .programvare)
+        gammel.insert(bilag)
+        let side = UIImage(systemName: "doc")!
+        let pdf = Vedlegg(data: Dokumenter.pdf(av: [side]), filtype: "pdf")
+        gammel.insert(pdf)
+        bilag.vedlegg = [pdf]
+        try gammel.save()
+
+        #expect(pdf.erPdf)
+        #expect(pdf.miniatyr() != nil)
+
+        let ny = try nyDatabase()
+        _ = try Sikkerhetskopi.les(try Sikkerhetskopi.lag(fra: gammel).somData()).gjenopprett(til: ny)
+        let hentet = try #require(try ny.fetch(FetchDescriptor<Bilag>()).first?.sorterteVedlegg.first)
+        #expect(hentet.filtype == "pdf")
+        #expect(hentet.data == pdf.data)
+    }
+
     @Test func betaltFakturaBlirInntektOgKanAngres() throws {
         let db = try nyDatabase()
         let f = Faktura()
