@@ -190,3 +190,39 @@ struct MvaTerminTests {
         #expect(!InnstillingSynk.erLike(true, nil))
     }
 }
+
+struct ValutakursTests {
+    // Samme oppbygning som svaret fra data.norges-bank.no (format=sdmx-json), forkortet.
+    private func svar(valuta: String, enhet: Int, kurser: [String]) -> Data {
+        let obs = kurser.enumerated().map { "\"\($0.offset)\":[\"\($0.element)\"]" }.joined(separator: ",")
+        let datoer = (0..<kurser.count).map { "{\"id\":\"2026-10-\(String(format: "%02d", 14 + $0))\"}" }.joined(separator: ",")
+        return """
+        {"data":{"dataSets":[{"series":{"0:0:0:0":{"attributes":[0,0,\(enhet),0],"observations":{\(obs)}}}}],
+        "structure":{"dimensions":{"series":[{"id":"BASE_CUR","values":[{"id":"\(valuta)"}]}],
+        "observation":[{"id":"TIME_PERIOD","values":[\(datoer)]}]},
+        "attributes":{"series":[{"id":"DECIMALS","values":[{"id":"4"}]},{"id":"CALCULATED","values":[{"id":"false"}]},
+        {"id":"UNIT_MULT","values":[{"id":"0"},{"id":"2"}]},{"id":"COLLECTION","values":[{"id":"C"}]}]}}}}
+        """.data(using: .utf8)!
+    }
+
+    @Test func sisteKursBrukes() throws {
+        let kurs = try Valutakurs.tolk(svar(valuta: "USD", enhet: 0, kurser: ["10.80", "10.90", "11.0125"]), valuta: "USD")
+        #expect(kurs.dato == "2026-10-16")
+        #expect(abs(kurs.kroner - 11.0125) < 0.00001)
+    }
+
+    @Test func svenskeKronerOppgisPerHundre() throws {
+        let kurs = try Valutakurs.tolk(svar(valuta: "SEK", enhet: 1, kurser: ["98.50"]), valuta: "SEK")
+        #expect(abs(kurs.kroner - 0.985) < 0.00001)
+    }
+
+    @Test func tomtSvarGirFeil() {
+        let tomt = #"{"data":{"dataSets":[{"series":{}}],"structure":{"dimensions":{"observation":[]},"attributes":{"series":[]}}}}"#
+        #expect(throws: Valutakurs.Feil.self) { try Valutakurs.tolk(Data(tomt.utf8), valuta: "USD") }
+    }
+
+    @Test func datoBlirSkrevetSomNorgesBankVil() {
+        let d = Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 5, hour: 23))!
+        #expect(Valutakurs.datotekst(d) == "2026-03-05")
+    }
+}

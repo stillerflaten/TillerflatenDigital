@@ -46,6 +46,16 @@ struct KalkulatorerView: View {
                             }
                         } icon: { Image(systemName: "building.columns") }
                     }
+                    NavigationLink {
+                        ValutakalkulatorView()
+                    } label: {
+                        Label {
+                            VStack(alignment: .leading) {
+                                Text("Valuta")
+                                Text("Regn om dollar, euro osv. til kroner").font(.caption).foregroundStyle(.secondary)
+                            }
+                        } icon: { Image(systemName: "dollarsign.arrow.circlepath") }
+                    }
                 }
                 Section {
                     NavigationLink {
