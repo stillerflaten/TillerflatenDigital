@@ -328,6 +328,7 @@ a { color: var(--accent); }
 .store-badge:hover { transform: translateY(-1px); }
 .store-badge:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 3px; }
 .store-badge img { height: 54px; width: auto; display: block; }
+@media (max-width: 640px) { .store-badge img { height: 46px; } }
 .app .btn-primary { background: var(--accent); color: var(--on-accent); }
 .app .btn-primary:hover { background: var(--accent-hover); }
 
