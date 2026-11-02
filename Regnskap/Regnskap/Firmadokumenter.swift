@@ -120,12 +120,13 @@ struct DokumentSkjemaView: View {
 }
 
 /// Dokumentene som er lagt ved et huskepunkt. Nye dokumenter blir også firmadokumenter.
+/// Arkene (velg dokument, endre navn) eies av skjemaet rundt, fordi et ark som henger på en
+/// `Section` i et `Form` blir lagt på hver rad, og da lukker skjemaet seg når du velger noe.
 struct HuskepunktDokumentSeksjon: View {
     @Environment(\.modelContext) private var context
     @Bindable var huskepunkt: Huskepunkt
-
-    @State private var visVelger = false
-    @State private var endre: Dokument?
+    @Binding var visVelger: Bool
+    @Binding var endre: Dokument?
 
     private var vedlagt: [Dokument] { (huskepunkt.dokumenter ?? []).sorted { $0.navn < $1.navn } }
 
@@ -155,19 +156,6 @@ struct HuskepunktDokumentSeksjon: View {
             Text("Dokumenter")
         } footer: {
             Text("Trykk for å åpne. Sveip til venstre for å fjerne et dokument fra huskepunktet. Dokumentet blir liggende under Firmadokumenter.")
-        }
-        .sheet(isPresented: $visVelger) {
-            NavigationStack {
-                VelgFirmadokumentView(valgt: Set(vedlagt.map(\.uuid))) { d in
-                    huskepunkt.dokumenter = (huskepunkt.dokumenter ?? []) + [d]
-                    try? context.save()
-                }
-            }
-        }
-        .sheet(item: $endre) { d in
-            NavigationStack {
-                DokumentSkjemaView(dokument: d)
-            }
         }
     }
 

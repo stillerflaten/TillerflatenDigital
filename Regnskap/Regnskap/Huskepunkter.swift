@@ -264,6 +264,8 @@ struct HuskepunktSkjemaView: View {
     @State private var egetAntall: Bool
     @State private var bekreftSlett = false
     @State private var slettet = false
+    @State private var visDokumentvelger = false
+    @State private var endreDokument: Dokument?
     private let erNy: Bool
 
     init(huskepunkt: Huskepunkt?) {
@@ -314,7 +316,7 @@ struct HuskepunktSkjemaView: View {
                     Text("Når du har lagret huskepunktet, kan du legge ved dokumenter, f.eks. et vedtak eller en avtale.")
                 }
             } else {
-                HuskepunktDokumentSeksjon(huskepunkt: huskepunkt)
+                HuskepunktDokumentSeksjon(huskepunkt: huskepunkt, visVelger: $visDokumentvelger, endre: $endreDokument)
             }
 
             if !erNy {
@@ -341,6 +343,19 @@ struct HuskepunktSkjemaView: View {
                             Text((huskepunkt.dokumenter ?? []).isEmpty ? "" : "Dokumentene blir liggende under Firmadokumenter.")
                         }
                 }
+            }
+        }
+        .sheet(isPresented: $visDokumentvelger) {
+            NavigationStack {
+                VelgFirmadokumentView(valgt: Set((huskepunkt.dokumenter ?? []).map(\.uuid))) { d in
+                    huskepunkt.dokumenter = (huskepunkt.dokumenter ?? []) + [d]
+                    try? context.save()
+                }
+            }
+        }
+        .sheet(item: $endreDokument) { d in
+            NavigationStack {
+                DokumentSkjemaView(dokument: d)
             }
         }
         .tastaturFerdigKnapp()
