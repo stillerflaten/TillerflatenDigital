@@ -23,6 +23,7 @@ struct RegnskapApp: App {
             case .active:
                 Laas.appenErAktiv()
                 AutoKopi.kjorHvisNodvendig(container.mainContext)
+                Huskepunkter.planleggAlle(container.mainContext)
             case .background:
                 Laas.appenErBorte()
             default:

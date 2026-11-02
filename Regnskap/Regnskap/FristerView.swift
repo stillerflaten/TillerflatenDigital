@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 struct FristerView: View {
     @AppStorage(Innstilling.forskuddsskatt) private var forskuddsskatt = true
@@ -7,8 +8,12 @@ struct FristerView: View {
     @AppStorage(Innstilling.varsler) private var varsler = false
     @AppStorage(Innstilling.varselDagerFor) private var dagerFor = 7
 
+    @Query(sort: \Huskepunkt.dato) private var huskepunkter: [Huskepunkt]
+
     @State private var iKalender: Set<String> = []
     @State private var kalenderMelding: String?
+    @State private var visHuskepunkt = false
+    @State private var valgtHuskepunkt: Huskepunkt?
 
     private var frister: [Frist] {
         Frister.kommende(forskuddsskatt: forskuddsskatt, mvaRegistrert: mvaRegistrert, mvaAarstermin: mvaAarstermin)
@@ -17,6 +22,13 @@ struct FristerView: View {
     var body: some View {
         NavigationStack {
             List {
+                HuskepunktSeksjon(iKalender: iKalender) { h in
+                    Task { await leggIKalender(huskepunkt: h) }
+                } nytt: { h in
+                    valgtHuskepunkt = h
+                    visHuskepunkt = true
+                }
+
                 Section {
                     Toggle("Varsle meg før frister", isOn: $varsler)
                     if varsler {
@@ -74,6 +86,19 @@ struct FristerView: View {
             }
             .temaBakgrunn()
             .navigationTitle("Frister")
+            .toolbar {
+                Button {
+                    valgtHuskepunkt = nil
+                    visHuskepunkt = true
+                } label: {
+                    Label("Nytt huskepunkt", systemImage: "plus")
+                }
+            }
+            .sheet(isPresented: $visHuskepunkt, onDismiss: oppdaterKalenderstatus) {
+                NavigationStack {
+                    HuskepunktSkjemaView(huskepunkt: valgtHuskepunkt)
+                }
+            }
             .onChange(of: varsler) { _, paa in
                 if paa {
                     Task {
@@ -125,8 +150,23 @@ struct FristerView: View {
         }
     }
 
+    private func leggIKalender(huskepunkt h: Huskepunkt) async {
+        guard await Kalender.beOmTilgang() else {
+            kalenderMelding = Kalender.Feil.ingenTilgang.errorDescription
+            return
+        }
+        do {
+            try Kalender.leggInn(huskepunkt: h)
+            oppdaterKalenderstatus()
+            kalenderMelding = "«\(h.tittel)» er lagt i kalenderen."
+        } catch {
+            kalenderMelding = "Kunne ikke legge inn i kalenderen: \(error.localizedDescription)"
+        }
+    }
+
     private func oppdaterKalenderstatus() {
-        guard let siste = frister.last?.dato else { return }
+        let datoer = frister.map(\.dato) + huskepunkter.map(\.dato)
+        guard let siste = datoer.max() else { return }
         let start = Frister.kalender.startOfDay(for: .now)
         let slutt = Frister.kalender.date(byAdding: .day, value: 2, to: siste) ?? siste
         iKalender = Kalender.lagtInn(fra: start, til: slutt)

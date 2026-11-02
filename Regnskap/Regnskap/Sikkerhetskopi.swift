@@ -18,6 +18,7 @@ struct Sikkerhetskopi: Codable {
     var fasteUtgifter: [FastUtgiftKopi]?
     var prosjekter: [ProsjektKopi]? = nil
     var avtaler: [AvtaleKopi]? = nil
+    var huskepunkter: [HuskepunktKopi]? = nil
 
     struct VedleggKopi: Codable {
         var uuid: UUID
@@ -178,6 +179,17 @@ struct Sikkerhetskopi: Codable {
         var dokumenter: [DokumentKopi]? = nil
     }
 
+    struct HuskepunktKopi: Codable {
+        var uuid: UUID
+        var tittel: String
+        var notat: String
+        var dato: Date
+        var dagerFor: Int
+        var hvertAar: Bool
+        var ferdig: Bool
+        var opprettet: Date
+    }
+
     struct LinjeKopi: Codable {
         var uuid: UUID
         var nr: Int
@@ -297,6 +309,10 @@ struct Sikkerhetskopi: Codable {
                              TimeforingKopi(uuid: $0.uuid, dato: $0.dato, timer: $0.timer, notat: $0.notat,
                                             fakturaUUID: $0.fakturaUUID)
                          })
+        }
+        kopi.huskepunkter = try context.fetch(FetchDescriptor<Huskepunkt>()).map {
+            HuskepunktKopi(uuid: $0.uuid, tittel: $0.tittel, notat: $0.notat, dato: $0.dato, dagerFor: $0.dagerFor,
+                           hvertAar: $0.hvertAar, ferdig: $0.ferdig, opprettet: $0.opprettet)
         }
         return kopi
     }
@@ -507,6 +523,20 @@ struct Sikkerhetskopi: Codable {
                 nye.append(t)
             }
             p.foringer = nye
+            resultat.lagtTil += 1
+        }
+
+        let finnesHuskepunkt = Set(try context.fetch(FetchDescriptor<Huskepunkt>()).map(\.uuid))
+        for k in huskepunkter ?? [] {
+            guard !finnesHuskepunkt.contains(k.uuid) else { resultat.hoppetOver += 1; continue }
+            let h = Huskepunkt(tittel: k.tittel, dato: k.dato, dagerFor: k.dagerFor)
+            h.uuid = k.uuid
+            h.notat = k.notat
+            h.hvertAar = k.hvertAar
+            h.ferdig = k.ferdig
+            h.opprettet = k.opprettet
+            context.insert(h)
+            Varsler.planleggHuskepunkt(h)
             resultat.lagtTil += 1
         }
 

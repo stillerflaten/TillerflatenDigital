@@ -122,6 +122,14 @@ enum Kalender {
         try? fjern(id: "faktura-\(faktura.uuid.uuidString)", rundt: faktura.gjeldendeFrist)
     }
 
+    static func leggInn(huskepunkt h: Huskepunkt) throws {
+        try leggInn(id: "husk-\(h.uuid.uuidString)", tittel: h.tittel, notat: h.notat, dato: h.dato, dagerFor: h.dagerFor)
+    }
+
+    static func fjern(huskepunkt h: Huskepunkt) {
+        try? fjern(id: "husk-\(h.uuid.uuidString)", rundt: h.dato)
+    }
+
     static func fjern(regning: Bilag) {
         guard let forfall = regning.forfallsdato else { return }
         try? fjern(id: "regning-\(regning.uuid.uuidString)", rundt: forfall)

@@ -93,6 +93,47 @@ enum Varsler {
             .removePendingNotificationRequests(withIdentifiers: ["avtale-\(avtale.uuid.uuidString)"])
     }
 
+    /// Varsel `dagerFor` dager før et huskepunkt, og et til på selve dagen.
+    static func planleggHuskepunkt(_ h: Huskepunkt) {
+        let id = "husk-\(h.uuid.uuidString)"
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id, id + "-dagen"])
+        guard !h.ferdig else { return }
+        let notat = h.notat.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let paaDagen = UNMutableNotificationContent()
+        paaDagen.title = h.tittel
+        paaDagen.body = notat.isEmpty ? "I dag er dagen." : "I dag er dagen. \(notat)"
+        paaDagen.sound = .default
+        leggTil(id: h.dagerFor == 0 ? id : id + "-dagen", dato: h.dato, dagerFor: 0, innhold: paaDagen)
+
+        guard h.dagerFor > 0 else { return }
+        let dato = h.dato.formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "nb_NO")))
+        let innhold = UNMutableNotificationContent()
+        innhold.title = h.tittel
+        innhold.body = "Om \(Huskepunkter.varseltekst(h.dagerFor).replacingOccurrences(of: " før", with: "")) (\(dato))."
+            + (notat.isEmpty ? "" : " \(notat)")
+        innhold.sound = .default
+        leggTil(id: id, dato: h.dato, dagerFor: h.dagerFor, innhold: innhold)
+    }
+
+    static func fjernHuskepunkt(_ h: Huskepunkt) {
+        let id = "husk-\(h.uuid.uuidString)"
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id, id + "-dagen"])
+    }
+
+    /// Legger inn varsler for alle huskepunktene på nytt, og fjerner varsler for huskepunkter som er slettet.
+    static func planleggHuskepunkter(_ alle: [Huskepunkt]) {
+        let finnes = Set(alle.map { "husk-\($0.uuid.uuidString)" })
+        let senter = UNUserNotificationCenter.current()
+        senter.getPendingNotificationRequests { ventende in
+            let gamle = ventende.map(\.identifier).filter {
+                $0.hasPrefix("husk-") && !finnes.contains($0.replacingOccurrences(of: "-dagen", with: ""))
+            }
+            senter.removePendingNotificationRequests(withIdentifiers: gamle)
+        }
+        for h in alle { planleggHuskepunkt(h) }
+    }
+
     static func fjernAlleFrister() {
         let senter = UNUserNotificationCenter.current()
         senter.getPendingNotificationRequests { ventende in
