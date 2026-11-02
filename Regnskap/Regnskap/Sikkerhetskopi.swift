@@ -19,6 +19,7 @@ struct Sikkerhetskopi: Codable {
     var prosjekter: [ProsjektKopi]? = nil
     var avtaler: [AvtaleKopi]? = nil
     var huskepunkter: [HuskepunktKopi]? = nil
+    var firmadokumenter: [DokumentKopi]? = nil
 
     struct VedleggKopi: Codable {
         var uuid: UUID
@@ -109,6 +110,7 @@ struct Sikkerhetskopi: Codable {
         var filtype: String
         var opprettet: Date
         var data: Data?
+        var notat: String? = nil
 
         init(_ d: Dokument) {
             uuid = d.uuid
@@ -116,6 +118,7 @@ struct Sikkerhetskopi: Codable {
             filtype = d.filtype
             opprettet = d.opprettet
             data = d.data
+            notat = d.notat
         }
 
         /// Lager dokumentet i databasen, eller nil hvis filen mangler.
@@ -124,6 +127,7 @@ struct Sikkerhetskopi: Codable {
             let d = Dokument(navn: navn, filtype: filtype, data: data)
             d.uuid = uuid
             d.opprettet = opprettet
+            d.notat = notat ?? ""
             context.insert(d)
             return d
         }
@@ -188,6 +192,8 @@ struct Sikkerhetskopi: Codable {
         var hvertAar: Bool
         var ferdig: Bool
         var opprettet: Date
+        /// Firmadokumentene som er lagt ved.
+        var dokumenter: [UUID]? = nil
     }
 
     struct LinjeKopi: Codable {
@@ -312,8 +318,11 @@ struct Sikkerhetskopi: Codable {
         }
         kopi.huskepunkter = try context.fetch(FetchDescriptor<Huskepunkt>()).map {
             HuskepunktKopi(uuid: $0.uuid, tittel: $0.tittel, notat: $0.notat, dato: $0.dato, dagerFor: $0.dagerFor,
-                           hvertAar: $0.hvertAar, ferdig: $0.ferdig, opprettet: $0.opprettet)
+                           hvertAar: $0.hvertAar, ferdig: $0.ferdig, opprettet: $0.opprettet,
+                           dokumenter: ($0.dokumenter ?? []).map(\.uuid))
         }
+        kopi.firmadokumenter = try context.fetch(FetchDescriptor<Dokument>(predicate: #Predicate { $0.erFirmadokument }))
+            .map(DokumentKopi.init)
         return kopi
     }
 
@@ -526,6 +535,16 @@ struct Sikkerhetskopi: Codable {
             resultat.lagtTil += 1
         }
 
+        var dokumentEtterId: [UUID: Dokument] = [:]
+        for d in try context.fetch(FetchDescriptor<Dokument>()) { dokumentEtterId[d.uuid] = d }
+        for k in firmadokumenter ?? [] {
+            guard dokumentEtterId[k.uuid] == nil else { resultat.hoppetOver += 1; continue }
+            guard let d = k.gjenopprett(i: context) else { continue }
+            d.erFirmadokument = true
+            dokumentEtterId[d.uuid] = d
+            resultat.lagtTil += 1
+        }
+
         let finnesHuskepunkt = Set(try context.fetch(FetchDescriptor<Huskepunkt>()).map(\.uuid))
         for k in huskepunkter ?? [] {
             guard !finnesHuskepunkt.contains(k.uuid) else { resultat.hoppetOver += 1; continue }
@@ -536,6 +555,7 @@ struct Sikkerhetskopi: Codable {
             h.ferdig = k.ferdig
             h.opprettet = k.opprettet
             context.insert(h)
+            h.dokumenter = (k.dokumenter ?? []).compactMap { dokumentEtterId[$0] }
             Varsler.planleggHuskepunkt(h)
             resultat.lagtTil += 1
         }

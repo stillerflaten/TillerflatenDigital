@@ -14,6 +14,8 @@ final class Huskepunkt {
     var hvertAar: Bool = false
     var ferdig: Bool = false
     var opprettet: Date = Date.now
+    /// Firmadokumenter som hører til, f.eks. vedtaket om bierverv.
+    @Relationship(deleteRule: .nullify, inverse: \Dokument.huskepunkter) var dokumenter: [Dokument]? = []
 
     init(tittel: String = "", dato: Date = .now, dagerFor: Int = 7) {
         self.tittel = tittel
@@ -204,6 +206,12 @@ struct HuskepunktRad: View {
                 HStack(spacing: 4) {
                     Text(huskepunkt.tittel)
                         .strikethrough(huskepunkt.ferdig)
+                    if !(huskepunkt.dokumenter ?? []).isEmpty {
+                        Image(systemName: "paperclip")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .accessibilityLabel("Har dokumenter")
+                    }
                     if huskepunkt.hvertAar {
                         Image(systemName: "repeat")
                             .font(.caption)
@@ -300,6 +308,15 @@ struct HuskepunktSkjemaView: View {
                 Text(varselforklaring)
             }
 
+            if erNy {
+                Section {
+                } footer: {
+                    Text("Når du har lagret huskepunktet, kan du legge ved dokumenter, f.eks. et vedtak eller en avtale.")
+                }
+            } else {
+                HuskepunktDokumentSeksjon(huskepunkt: huskepunkt)
+            }
+
             if !erNy {
                 Section {
                     Toggle("Ferdig", isOn: $huskepunkt.ferdig)
@@ -320,6 +337,8 @@ struct HuskepunktSkjemaView: View {
                                     try? context.save()
                                 }
                             }
+                        } message: {
+                            Text((huskepunkt.dokumenter ?? []).isEmpty ? "" : "Dokumentene blir liggende under Firmadokumenter.")
                         }
                 }
             }
