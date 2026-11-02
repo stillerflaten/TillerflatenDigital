@@ -472,4 +472,47 @@ struct SikkerhetskopiTests {
         let dokument = try #require(CGPDFDocument(CGDataProvider(data: pdf as CFData)!))
         #expect(dokument.numberOfPages >= 3)
     }
+    @Test func huskepunktKommerMedISikkerhetskopien() throws {
+        let gammel = try nyDatabase()
+        let h = Huskepunkter.forslagBierverv()
+        h.hvertAar = true
+        gammel.insert(h)
+        try gammel.save()
+
+        let ny = try nyDatabase()
+        let resultat = try Sikkerhetskopi.les(try Sikkerhetskopi.lag(fra: gammel).somData()).gjenopprett(til: ny)
+        #expect(resultat.lagtTil == 1)
+        let hentet = try #require(try ny.fetch(FetchDescriptor<Huskepunkt>()).first)
+        #expect(hentet.uuid == h.uuid)
+        #expect(hentet.tittel == "Søk om fornyelse av bierverv")
+        #expect(hentet.dagerFor == 30)
+        #expect(hentet.hvertAar)
+        #expect(Frister.kalender.isDate(hentet.dato, inSameDayAs: h.dato))
+    }
+
+    @Test func eldreSikkerhetskopiUtenHuskepunkterKanLeses() throws {
+        let json = #"{"versjon":1,"laget":"2026-10-01T10:00:00Z","bilag":[],"inntekter":[],"driftsmidler":[],"turer":[]}"#
+        let kopi = try Sikkerhetskopi.les(Data(json.utf8))
+        #expect(kopi.huskepunkter == nil)
+        _ = try kopi.gjenopprett(til: try nyDatabase())
+    }
+
+    @Test func aarligHuskepunktFlyttesTilNesteAarNaarDetErFerdig() {
+        let cal = Frister.kalender
+        let dato = cal.date(from: DateComponents(year: 2026, month: 3, day: 1, hour: 12))!
+        let idag = cal.date(from: DateComponents(year: 2026, month: 3, day: 2, hour: 12))!
+        let neste = Huskepunkter.nesteAar(etter: dato, idag: idag)
+        #expect(cal.dateComponents([.year, .month, .day], from: neste) == DateComponents(year: 2027, month: 3, day: 1))
+
+        // Glemt i flere år: hopper fram til neste gang datoen kommer.
+        let senere = cal.date(from: DateComponents(year: 2029, month: 6, day: 1, hour: 12))!
+        let hopp = Huskepunkter.nesteAar(etter: dato, idag: senere)
+        #expect(cal.dateComponents([.year, .month, .day], from: hopp) == DateComponents(year: 2030, month: 3, day: 1))
+    }
+
+    @Test func varselDatoErRiktigAntallDagerFor() {
+        let h = Huskepunkter.forslagBierverv()
+        let cal = Frister.kalender
+        #expect(cal.dateComponents([.year, .month, .day], from: h.varselDato) == DateComponents(year: 2028, month: 8, day: 20))
+    }
 }
