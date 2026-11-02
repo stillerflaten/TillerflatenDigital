@@ -536,7 +536,7 @@ struct SikkerhetskopiTests {
 
         let dokumenter = try ny.fetch(FetchDescriptor<Dokument>())
         #expect(dokumenter.count == 2)
-        #expect(dokumenter.allSatisfy(\.erFirmadokument))
+        #expect(dokumenter.allSatisfy { $0.erFirmadokument })
         let hentetVedtak = try #require(dokumenter.first { $0.uuid == vedtak.uuid })
         #expect(hentetVedtak.notat == "Gjelder til 19.10.2028")
         #expect(hentetVedtak.data == Data([7, 8, 9]))
