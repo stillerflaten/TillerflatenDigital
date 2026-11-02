@@ -5,17 +5,23 @@ import VisionKit
 import UniformTypeIdentifiers
 import QuickLook
 
-/// En fil som hører til en kunde eller en avtale, f.eks. en signert kontrakt.
+/// En fil som hører til en kunde, en avtale eller foretaket (firmadokument), f.eks. en signert kontrakt
+/// eller vedtaket om bierverv. Firmadokumenter kan også kobles til huskepunkter.
 @Model
 final class Dokument {
     var uuid: UUID = UUID()
     var navn: String = ""
+    var notat: String = ""
+    /// Gjelder hele foretaket og vises under Firmadokumenter.
+    var erFirmadokument: Bool = false
     /// Filendelsen, f.eks. «pdf», «jpg» eller «docx».
     var filtype: String = "pdf"
     var opprettet: Date = Date.now
     @Attribute(.externalStorage) var data: Data? = nil
     var kunde: Kunde?
     var avtale: Avtale?
+    /// Huskepunktene dokumentet er lagt ved. Slettes et huskepunkt, blir dokumentet liggende.
+    var huskepunkter: [Huskepunkt]? = []
 
     init(navn: String, filtype: String, data: Data) {
         self.navn = navn
@@ -72,9 +78,6 @@ struct DokumentSeksjon: View {
     let leggTil: (Dokument) -> Void
     let fjern: (Dokument) -> Void
 
-    @State private var visFilvelger = false
-    @State private var visSkanner = false
-    @State private var valgteFoto: [PhotosPickerItem] = []
     @State private var forhandsvis: URL?
     @State private var feil: String?
 
@@ -108,61 +111,13 @@ struct DokumentSeksjon: View {
                 }
             }
 
-            Menu {
-                Button("Velg fil", systemImage: "folder") { visFilvelger = true }
-                if VNDocumentCameraViewController.isSupported {
-                    Button("Skann dokument", systemImage: "doc.viewfinder") { visSkanner = true }
+            DokumentLeggTilMeny { legg($0) }
+                .quickLookPreview($forhandsvis)
+                .alert("Dokument", isPresented: Binding(get: { feil != nil }, set: { if !$0 { feil = nil } })) {
+                    Button("OK") { feil = nil }
+                } message: {
+                    Text(feil ?? "")
                 }
-                PhotosPicker(selection: $valgteFoto, maxSelectionCount: 10, matching: .images) {
-                    Label("Velg bilde", systemImage: "photo.on.rectangle")
-                }
-            } label: {
-                Label("Legg til dokument", systemImage: "paperclip")
-            }
-            .quickLookPreview($forhandsvis)
-            .fileImporter(isPresented: $visFilvelger, allowedContentTypes: [.item], allowsMultipleSelection: true) { svar in
-                guard case .success(let urler) = svar else { return }
-                var feilet: [String] = []
-                for url in urler {
-                    let tilgang = url.startAccessingSecurityScopedResource()
-                    defer { if tilgang { url.stopAccessingSecurityScopedResource() } }
-                    guard let data = try? Data(contentsOf: url) else {
-                        feilet.append(url.lastPathComponent)
-                        continue
-                    }
-                    let filtype = url.pathExtension.isEmpty ? "pdf" : url.pathExtension.lowercased()
-                    legg(Dokument(navn: url.deletingPathExtension().lastPathComponent, filtype: filtype, data: data))
-                }
-                if !feilet.isEmpty {
-                    feil = "Kunne ikke lese \(feilet.map { "«\($0)»" }.joined(separator: ", ")). Ligger filen i iCloud Drive, kan du åpne den i Filer-appen først så den lastes ned."
-                }
-            }
-            .fullScreenCover(isPresented: $visSkanner) {
-                DokumentSkanner { sider in
-                    guard !sider.isEmpty else { return }
-                    legg(Dokument(navn: "Skannet \(Date.now.formatted(date: .abbreviated, time: .omitted))",
-                                  filtype: "pdf", data: Dokumenter.pdf(av: sider)))
-                }
-                .ignoresSafeArea()
-            }
-            .onChange(of: valgteFoto) { _, nye in
-                guard !nye.isEmpty else { return }
-                Task {
-                    for (i, item) in nye.enumerated() {
-                        if let raa = try? await item.loadTransferable(type: Data.self),
-                           let bilde = UIImage(data: raa),
-                           let jpg = Bildeverktoy.komprimer(bilde, maksSide: 3000) {
-                            legg(Dokument(navn: nye.count == 1 ? "Bilde" : "Bilde \(i + 1)", filtype: "jpg", data: jpg))
-                        }
-                    }
-                    valgteFoto = []
-                }
-            }
-            .alert("Dokument", isPresented: Binding(get: { feil != nil }, set: { if !$0 { feil = nil } })) {
-                Button("OK") { feil = nil }
-            } message: {
-                Text(feil ?? "")
-            }
         } header: {
             Text("Dokumenter")
         } footer: {
@@ -182,5 +137,118 @@ struct DokumentSeksjon: View {
         fjern(d)
         context.delete(d)
         try? context.save()
+    }
+}
+
+/// Menyen «Legg til dokument»: velg fil, skann eller velg bilde. Kaller `ny` med hvert dokument
+/// (ikke lagt inn i databasen ennå).
+struct DokumentLeggTilMeny: View {
+    var tittel = "Legg til dokument"
+    let ny: (Dokument) -> Void
+
+    @State private var visFilvelger = false
+    @State private var visSkanner = false
+    @State private var valgteFoto: [PhotosPickerItem] = []
+    @State private var feil: String?
+
+    var body: some View {
+        Menu {
+            Button("Velg fil", systemImage: "folder") { visFilvelger = true }
+            if VNDocumentCameraViewController.isSupported {
+                Button("Skann dokument", systemImage: "doc.viewfinder") { visSkanner = true }
+            }
+            PhotosPicker(selection: $valgteFoto, maxSelectionCount: 10, matching: .images) {
+                Label("Velg bilde", systemImage: "photo.on.rectangle")
+            }
+        } label: {
+            Label(tittel, systemImage: "paperclip")
+        }
+        .fileImporter(isPresented: $visFilvelger, allowedContentTypes: [.item], allowsMultipleSelection: true) { svar in
+            guard case .success(let urler) = svar else { return }
+            var feilet: [String] = []
+            for url in urler {
+                let tilgang = url.startAccessingSecurityScopedResource()
+                defer { if tilgang { url.stopAccessingSecurityScopedResource() } }
+                guard let data = try? Data(contentsOf: url) else {
+                    feilet.append(url.lastPathComponent)
+                    continue
+                }
+                let filtype = url.pathExtension.isEmpty ? "pdf" : url.pathExtension.lowercased()
+                ny(Dokument(navn: url.deletingPathExtension().lastPathComponent, filtype: filtype, data: data))
+            }
+            if !feilet.isEmpty {
+                feil = "Kunne ikke lese \(feilet.map { "«\($0)»" }.joined(separator: ", ")). Ligger filen i iCloud Drive, kan du åpne den i Filer-appen først så den lastes ned."
+            }
+        }
+        .fullScreenCover(isPresented: $visSkanner) {
+            DokumentSkanner { sider in
+                guard !sider.isEmpty else { return }
+                ny(Dokument(navn: "Skannet \(Date.now.formatted(date: .abbreviated, time: .omitted))",
+                              filtype: "pdf", data: Dokumenter.pdf(av: sider)))
+            }
+            .ignoresSafeArea()
+        }
+        .onChange(of: valgteFoto) { _, nye in
+            guard !nye.isEmpty else { return }
+            Task {
+                for (i, item) in nye.enumerated() {
+                    if let raa = try? await item.loadTransferable(type: Data.self),
+                       let bilde = UIImage(data: raa),
+                       let jpg = Bildeverktoy.komprimer(bilde, maksSide: 3000) {
+                        ny(Dokument(navn: nye.count == 1 ? "Bilde" : "Bilde \(i + 1)", filtype: "jpg", data: jpg))
+                    }
+                }
+                valgteFoto = []
+            }
+        }
+        .alert("Dokument", isPresented: Binding(get: { feil != nil }, set: { if !$0 { feil = nil } })) {
+            Button("OK") { feil = nil }
+        } message: {
+            Text(feil ?? "")
+        }
+    }
+}
+
+/// Åpner et dokument i forhåndsvisning, med en melding hvis filen ikke finnes.
+struct DokumentRad: View {
+    let dokument: Dokument
+    @State private var forhandsvis: URL?
+    @State private var feil: String?
+
+    var body: some View {
+        Button {
+            if let url = dokument.midlertidigFil() {
+                forhandsvis = url
+            } else {
+                feil = "Fant ikke filen. Den er kanskje ikke ferdig synkronisert fra iCloud ennå."
+            }
+        } label: {
+            HStack {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(dokument.navn)
+                        if !dokument.notat.isEmpty {
+                            Text(dokument.notat)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        }
+                    }
+                } icon: {
+                    Image(systemName: dokument.ikon)
+                }
+                Spacer()
+                Text(dokument.opprettet.formatted(date: .abbreviated, time: .omitted))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .tint(.primary)
+        .quickLookPreview($forhandsvis)
+        .alert("Dokument", isPresented: Binding(get: { feil != nil }, set: { if !$0 { feil = nil } })) {
+            Button("OK") { feil = nil }
+        } message: {
+            Text(feil ?? "")
+        }
     }
 }

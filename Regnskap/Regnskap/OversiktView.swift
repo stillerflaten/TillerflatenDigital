@@ -165,6 +165,11 @@ struct OversiktView: View {
                     } label: {
                         Label("Arkiv med alle år", systemImage: "archivebox")
                     }
+                    NavigationLink {
+                        FirmadokumenterView()
+                    } label: {
+                        Label("Firmadokumenter", systemImage: "folder")
+                    }
                     Button {
                         rapport = Aarsrapport.fil(.init(aar: aar, bilag: bilag, inntekter: inntekter, driftsmidler: driftsmidler,
                                                         turer: turer, fakturaer: fakturaer, lonn: lonn,

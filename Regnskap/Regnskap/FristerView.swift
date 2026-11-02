@@ -12,8 +12,8 @@ struct FristerView: View {
 
     @State private var iKalender: Set<String> = []
     @State private var kalenderMelding: String?
-    @State private var visHuskepunkt = false
-    @State private var valgtHuskepunkt: Huskepunkt?
+    /// Skjemaet som vises. `huskepunkt` er nil for et nytt huskepunkt.
+    @State private var skjema: HuskepunktValg?
 
     private var frister: [Frist] {
         Frister.kommende(forskuddsskatt: forskuddsskatt, mvaRegistrert: mvaRegistrert, mvaAarstermin: mvaAarstermin)
@@ -25,8 +25,7 @@ struct FristerView: View {
                 HuskepunktSeksjon(iKalender: iKalender) { h in
                     Task { await leggIKalender(huskepunkt: h) }
                 } nytt: { h in
-                    valgtHuskepunkt = h
-                    visHuskepunkt = true
+                    skjema = HuskepunktValg(huskepunkt: h)
                 }
 
                 Section {
@@ -88,15 +87,14 @@ struct FristerView: View {
             .navigationTitle("Frister")
             .toolbar {
                 Button {
-                    valgtHuskepunkt = nil
-                    visHuskepunkt = true
+                    skjema = HuskepunktValg(huskepunkt: nil)
                 } label: {
                     Label("Nytt huskepunkt", systemImage: "plus")
                 }
             }
-            .sheet(isPresented: $visHuskepunkt, onDismiss: oppdaterKalenderstatus) {
+            .sheet(item: $skjema, onDismiss: oppdaterKalenderstatus) { valg in
                 NavigationStack {
-                    HuskepunktSkjemaView(huskepunkt: valgtHuskepunkt)
+                    HuskepunktSkjemaView(huskepunkt: valg.huskepunkt)
                 }
             }
             .onChange(of: varsler) { _, paa in
@@ -215,4 +213,10 @@ struct FristRad: View {
             }
         }
     }
+}
+
+/// Med `.sheet(item:)` får skjemaet riktig huskepunkt fra start.
+private struct HuskepunktValg: Identifiable {
+    let id = UUID()
+    let huskepunkt: Huskepunkt?
 }

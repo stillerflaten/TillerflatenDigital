@@ -515,4 +515,54 @@ struct SikkerhetskopiTests {
         let cal = Frister.kalender
         #expect(cal.dateComponents([.year, .month, .day], from: h.varselDato) == DateComponents(year: 2028, month: 8, day: 20))
     }
+    @Test func firmadokumentOgKoblingTilHuskepunktKommerMedISikkerhetskopien() throws {
+        let gammel = try nyDatabase()
+        let vedtak = Dokument(navn: "Vedtak om bierverv", filtype: "pdf", data: Data([7, 8, 9]))
+        vedtak.erFirmadokument = true
+        vedtak.notat = "Gjelder til 19.10.2028"
+        gammel.insert(vedtak)
+        let annet = Dokument(navn: "Avtale med Apple", filtype: "pdf", data: Data([1]))
+        annet.erFirmadokument = true
+        gammel.insert(annet)
+        let h = Huskepunkter.forslagBierverv()
+        gammel.insert(h)
+        h.dokumenter = [vedtak]
+        try gammel.save()
+
+        let data = try Sikkerhetskopi.lag(fra: gammel).somData()
+        let ny = try nyDatabase()
+        let resultat = try Sikkerhetskopi.les(data).gjenopprett(til: ny)
+        #expect(resultat.lagtTil == 3)
+
+        let dokumenter = try ny.fetch(FetchDescriptor<Dokument>())
+        #expect(dokumenter.count == 2)
+        #expect(dokumenter.allSatisfy { $0.erFirmadokument })
+        let hentetVedtak = try #require(dokumenter.first { $0.uuid == vedtak.uuid })
+        #expect(hentetVedtak.notat == "Gjelder til 19.10.2028")
+        #expect(hentetVedtak.data == Data([7, 8, 9]))
+
+        let hentetHusk = try #require(try ny.fetch(FetchDescriptor<Huskepunkt>()).first)
+        #expect(hentetHusk.dokumenter?.map(\.uuid) == [vedtak.uuid])
+
+        // En gang til: ingenting dobbelt.
+        let igjen = try Sikkerhetskopi.les(data).gjenopprett(til: ny)
+        #expect(igjen.lagtTil == 0)
+        #expect(try ny.fetch(FetchDescriptor<Dokument>()).count == 2)
+    }
+
+    @Test func slettetHuskepunktLarDokumentetBliLiggende() throws {
+        let db = try nyDatabase()
+        let vedtak = Dokument(navn: "Vedtak", filtype: "pdf", data: Data([1]))
+        vedtak.erFirmadokument = true
+        db.insert(vedtak)
+        let h = Huskepunkt(tittel: "Fornye")
+        db.insert(h)
+        h.dokumenter = [vedtak]
+        try db.save()
+
+        db.delete(h)
+        try db.save()
+        #expect(try db.fetch(FetchDescriptor<Huskepunkt>()).isEmpty)
+        #expect(try db.fetch(FetchDescriptor<Dokument>()).count == 1)
+    }
 }

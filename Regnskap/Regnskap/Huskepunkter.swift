@@ -14,6 +14,8 @@ final class Huskepunkt {
     var hvertAar: Bool = false
     var ferdig: Bool = false
     var opprettet: Date = Date.now
+    /// Firmadokumenter som hører til, f.eks. vedtaket om bierverv.
+    @Relationship(deleteRule: .nullify, inverse: \Dokument.huskepunkter) var dokumenter: [Dokument]? = []
 
     init(tittel: String = "", dato: Date = .now, dagerFor: Int = 7) {
         self.tittel = tittel
@@ -204,6 +206,12 @@ struct HuskepunktRad: View {
                 HStack(spacing: 4) {
                     Text(huskepunkt.tittel)
                         .strikethrough(huskepunkt.ferdig)
+                    if !(huskepunkt.dokumenter ?? []).isEmpty {
+                        Image(systemName: "paperclip")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .accessibilityLabel("Har dokumenter")
+                    }
                     if huskepunkt.hvertAar {
                         Image(systemName: "repeat")
                             .font(.caption)
@@ -256,6 +264,8 @@ struct HuskepunktSkjemaView: View {
     @State private var egetAntall: Bool
     @State private var bekreftSlett = false
     @State private var slettet = false
+    @State private var visDokumentvelger = false
+    @State private var endreDokument: Dokument?
     private let erNy: Bool
 
     init(huskepunkt: Huskepunkt?) {
@@ -300,6 +310,15 @@ struct HuskepunktSkjemaView: View {
                 Text(varselforklaring)
             }
 
+            if erNy {
+                Section {
+                } footer: {
+                    Text("Når du har lagret huskepunktet, kan du legge ved dokumenter, f.eks. et vedtak eller en avtale.")
+                }
+            } else {
+                HuskepunktDokumentSeksjon(huskepunkt: huskepunkt, visVelger: $visDokumentvelger, endre: $endreDokument)
+            }
+
             if !erNy {
                 Section {
                     Toggle("Ferdig", isOn: $huskepunkt.ferdig)
@@ -320,8 +339,23 @@ struct HuskepunktSkjemaView: View {
                                     try? context.save()
                                 }
                             }
+                        } message: {
+                            Text((huskepunkt.dokumenter ?? []).isEmpty ? "" : "Dokumentene blir liggende under Firmadokumenter.")
                         }
                 }
+            }
+        }
+        .sheet(isPresented: $visDokumentvelger) {
+            NavigationStack {
+                VelgFirmadokumentView(valgt: Set((huskepunkt.dokumenter ?? []).map(\.uuid))) { d in
+                    huskepunkt.dokumenter = (huskepunkt.dokumenter ?? []) + [d]
+                    try? context.save()
+                }
+            }
+        }
+        .sheet(item: $endreDokument) { d in
+            NavigationStack {
+                DokumentSkjemaView(dokument: d)
             }
         }
         .tastaturFerdigKnapp()
