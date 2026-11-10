@@ -145,7 +145,12 @@ struct ValutakalkulatorView: View {
                     Text("Fra kroner").tag(false)
                 }
                 .pickerStyle(.segmented)
-                BelopFelt("Beløp", belop: $belop, enhet: tilKroner ? valuta : "kr")
+                BelopFelt("Beløp", belop: $belop, enhet: tilKroner ? valuta : "kr") { verdi in
+                    // Viser svaret i kalkulatoren mens du skriver.
+                    guard let kurs, kurs.kroner > 0, verdi != 0 else { return nil }
+                    let svar = tilKroner ? verdi * kurs.kroner : verdi / kurs.kroner
+                    return "≈ " + Self.vis(svar, kode: tilKroner ? "NOK" : valuta)
+                }
                 Picker("Valuta", selection: $valuta) {
                     ForEach(Valutakurs.valutaer, id: \.self) { kode in
                         Text("\(kode) – \(Self.norsk.localizedString(forCurrencyCode: kode) ?? kode)").tag(kode)
@@ -186,7 +191,6 @@ struct ValutakalkulatorView: View {
                 Text("Om kursene")
             }
         }
-        .tastaturFerdigKnapp()
         .temaBakgrunn()
         .navigationTitle("Valuta")
         .task(id: "\(valuta) \(Valutakurs.datotekst(dato)) \(forsok)") { await hentKurs() }
