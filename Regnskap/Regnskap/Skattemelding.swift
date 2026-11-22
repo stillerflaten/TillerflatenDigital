@@ -48,7 +48,7 @@ struct Naeringsspesifikasjon {
         var appStore = 0.0, medMva = 0.0, utenMva = 0.0
         for i in alleInntekter where i.dato.aar == aar {
             let registrert = mvaRegistrert && (mvaFra.map { i.dato >= Frister.kalender.startOfDay(for: $0) } ?? true)
-            if i.kilde == "App Store" {
+            if i.erFraAppbutikk {
                 appStore += i.belop
             } else if registrert {
                 medMva += i.belop
@@ -63,7 +63,7 @@ struct Naeringsspesifikasjon {
         }
         if appStore != 0 {
             inn.append(Post(konto: "3100", navn: "Salgsinntekt, avgiftsfri", belop: appStore,
-                            forklaring: "Utbetalinger fra Apple. Apple holder til i utlandet, så salget er fritatt for norsk mva."))
+                            forklaring: "Utbetalinger fra App Store og Google Play. Apple og Google holder til i utlandet, så salget er fritatt for norsk mva."))
         }
         if utenMva != 0 {
             inn.append(Post(konto: "3200", navn: "Salgsinntekt, utenfor avgiftsområdet", belop: utenMva,

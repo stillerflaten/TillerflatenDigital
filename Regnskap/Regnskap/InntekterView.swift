@@ -61,7 +61,7 @@ struct InntekterView: View {
                     ContentUnavailableView {
                         Label("Ingen inntekter ennå", systemImage: "banknote")
                     } description: {
-                        Text("Legg inn hver utbetaling fra Apple når den kommer på konto. Beløpet finner du i App Store Connect under Payments and Financial Reports, eller på kontoutskriften.")
+                        Text("Legg inn hver utbetaling fra Apple og Google når den kommer på konto. Beløpet finner du i App Store Connect (Payments and Financial Reports), i Google Play Console (Inntekter › Utbetalinger) eller på kontoutskriften.")
                     } actions: {
                         Button("Legg inn utbetaling") { visNy = true }
                             .buttonStyle(.borderedProminent)
@@ -120,7 +120,7 @@ struct InntektSkjemaView: View {
     @State private var inntekt: Inntekt
     private let erNy: Bool
 
-    private let kilder = ["App Store", "Nettside-oppdrag", "Annet"]
+    private let kilder = ["App Store", "Google Play", "Nettside-oppdrag", "Annet"]
 
     init(inntekt: Inntekt?) {
         _inntekt = State(initialValue: inntekt ?? Inntekt())
@@ -139,7 +139,14 @@ struct InntektSkjemaView: View {
                 DatePicker("Dato på konto", selection: $inntekt.dato, displayedComponents: .date)
                 BelopFelt("Beløp utbetalt", belop: $inntekt.belop)
             } footer: {
-                Text("Fra App Store: bruk beløpet som faktisk kom inn på konto i kroner. Apple har da allerede trukket sin provisjon (15 % i Small Business Program) og betalt mva til land som krever det.")
+                switch inntekt.kilde {
+                case "Google Play":
+                    Text("Fra Google Play: bruk beløpet som faktisk kom inn på konto i kroner. Google har da allerede trukket sin avgift (15 % av den første millionen dollar i året) og betalt mva til land som krever det.")
+                case "App Store":
+                    Text("Fra App Store: bruk beløpet som faktisk kom inn på konto i kroner. Apple har da allerede trukket sin provisjon (15 % i Small Business Program) og betalt mva til land som krever det.")
+                default:
+                    Text("Bruk beløpet som faktisk kom inn på konto i kroner.")
+                }
             }
 
             Section("Dokumentasjon") {

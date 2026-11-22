@@ -48,14 +48,14 @@ enum Mva {
 /// Tallene du trenger til mva-meldingen for én termin.
 ///
 /// Kodene er de samme som i mva-meldingen i Altinn. Appen kjenner bare til det som
-/// er registrert her: fakturaer, App Store-inntekter og bilag.
+/// er registrert her: fakturaer, inntekter fra App Store og Google Play, og bilag.
 struct MvaMelding {
     let termin: Mva.Termin
 
     /// Kode 3: salg i Norge med 25 % mva (fakturaene dine).
     var salgGrunnlag: Double = 0
     var salgMva: Double = 0
-    /// Kode 52: tjenester levert til utlandet, fritatt (App Store-inntekter fra Apple).
+    /// Kode 52: tjenester levert til utlandet, fritatt (inntekter fra App Store og Google Play).
     var fritattUtland: Double = 0
     /// Kode 1: mva på kjøp i Norge som du får tilbake.
     var inngaendeMva: Double = 0
@@ -84,7 +84,7 @@ struct MvaMelding {
         }
         for i in inntekter where iPerioden(i.dato) {
             switch i.kilde {
-            case "App Store": fritattUtland += i.belop
+            case "App Store", "Google Play": fritattUtland += i.belop
             case "Faktura": break  // Telles fra fakturaene på fakturadatoen.
             default: ukjenteInntekter += i.belop
             }
