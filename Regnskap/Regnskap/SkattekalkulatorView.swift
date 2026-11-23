@@ -11,7 +11,7 @@ struct KalkulatorerView: View {
                     } label: {
                         Label {
                             VStack(alignment: .leading) {
-                                Text("Skatt på App Store-inntekt")
+                                Text("Skatt på appinntekter")
                                 Text("Hvor mye bør jeg sette av?").font(.caption).foregroundStyle(.secondary)
                             }
                         } icon: { Image(systemName: "percent") }
@@ -42,7 +42,7 @@ struct KalkulatorerView: View {
                         Label {
                             VStack(alignment: .leading) {
                                 Text("Mva")
-                                Text("Grensen, App Store, nettsider og mva-meldingen").font(.caption).foregroundStyle(.secondary)
+                                Text("Grensen, appbutikkene, nettsider og mva-meldingen").font(.caption).foregroundStyle(.secondary)
                             }
                         } icon: { Image(systemName: "building.columns") }
                     }
@@ -113,7 +113,7 @@ struct SkattekalkulatorView: View {
             } header: {
                 Text("Tall for \(String(aar))")
             } footer: {
-                Text("Inntekt er det Apple har betalt ut. Kostnader er alt du kan trekke fra: utstyr, abonnementer, avskrivning, kjøring osv.")
+                Text("Inntekt er det Apple og Google har betalt ut, pluss betalte fakturaer. Kostnader er alt du kan trekke fra: utstyr, abonnementer, avskrivning, kjøring osv.")
             }
 
             Section("Resultat") {

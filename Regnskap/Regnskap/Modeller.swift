@@ -154,6 +154,13 @@ final class Inntekt {
         self.belop = belop
         self.kilde = kilde
     }
+
+    /// Appbutikkene som betaler ut fra utlandet (Apple og Google).
+    /// Salget til dem er fritatt for norsk mva.
+    static let appbutikker: Set<String> = ["App Store", "Google Play"]
+
+    /// Utbetaling fra App Store eller Google Play.
+    var erFraAppbutikk: Bool { Inntekt.appbutikker.contains(kilde) }
 }
 
 /// Utstyr som avskrives (eller trekkes fra direkte).

@@ -22,13 +22,13 @@ struct MvaView: View {
             }
 
             Section("Når må jeg registrere meg?") {
-                Text("Når salget passerer 50 000 kr i løpet av 12 måneder, skal foretaket registreres i Merverdiavgiftsregisteret. Både App Store-inntekter og nettsideoppdrag teller med.")
+                Text("Når salget passerer 50 000 kr i løpet av 12 måneder, skal foretaket registreres i Merverdiavgiftsregisteret. Inntekter fra App Store og Google Play teller med, sammen med nettsideoppdrag.")
                 Text("Du kan registrere deg når du passerer grensen. Fakturaer du sender etter at registreringen er godkjent, skal ha 25 % mva.")
             }
 
-            Section("App Store") {
-                Text("Når noen kjøper appen din, er det Apple som selger den til kunden og betaler mva der kunden bor. Du selger i praksis en tjeneste til Apple, som holder til i utlandet.")
-                Text("Det er fritatt for norsk mva. Du legger altså ikke 25 % mva på det Apple betaler deg, og i mva-meldingen føres det som tjenester til utlandet.")
+            Section("App Store og Google Play") {
+                Text("Når noen kjøper appen din, er det Apple (App Store) eller Google (Google Play) som selger den til kunden og betaler mva der kunden bor. Du selger i praksis en tjeneste til Apple eller Google, som begge holder til i utlandet.")
+                Text("Det er fritatt for norsk mva. Du legger altså ikke 25 % mva på det Apple eller Google betaler deg, og i mva-meldingen føres det som tjenester til utlandet.")
             }
 
             Section("Nettsider og andre oppdrag i Norge") {
@@ -80,7 +80,7 @@ struct MvaMeldingView: View {
 
             Section {
                 KodeRad(kode: "3", tekst: "Salg i Norge, 25 %", grunnlag: m.salgGrunnlag, mva: m.salgMva)
-                KodeRad(kode: "52", tekst: "Tjenester til utlandet, fritatt (App Store)", grunnlag: m.fritattUtland, mva: nil)
+                KodeRad(kode: "52", tekst: "Tjenester til utlandet, fritatt (App Store og Google Play)", grunnlag: m.fritattUtland, mva: nil)
                 KodeRad(kode: "86", tekst: "Tjenester kjøpt fra utlandet", grunnlag: m.utlandGrunnlag, mva: m.utlandBeregnet)
             } header: {
                 Text("Utgående mva")
